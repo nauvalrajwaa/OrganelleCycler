@@ -1,0 +1,8 @@
+name: visualization
+channels:
+  - conda-forge
+  - bioconda
+  - defaults
+dependencies:
+  - bandage-ng  # Versi Bandage yang lebih baru dan maintened
+  - imagemagick # Untuk menggabungkan gambar menjadi grid
