@@ -1,0 +1,6 @@
+name: flye_env
+channels:
+  - bioconda
+  - conda-forge
+dependencies:
+  - flye

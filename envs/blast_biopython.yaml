@@ -1,0 +1,11 @@
+name: blast_bio
+channels:
+  - conda-forge
+  - bioconda
+  - defaults
+dependencies:
+  - python=3.9
+  - biopython
+  - blast
+  - pandas
+  - minimap2  # Kita butuh ini untuk mapping di dalam script python
