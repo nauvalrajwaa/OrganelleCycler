@@ -1,23 +1,43 @@
 # --- SYSTEM SETTINGS ---
-threads: 8                 # Jumlah CPU yang digunakan per rule
-email: "anda@email.com"    # GANTI DENGAN EMAIL ASLI (Wajib untuk NCBI Entrez)
-
-# --- INPUT/OUTPUT PATHS ---
+threads: 8
+email: "anda@email.com"  # Wajib diisi
 samples_file: "config/samples.tsv"
-reference_out: "resources/ref_tebu_plastome.fasta"      # Output download plastome
-mito_reference_out: "resources/ref_tebu_mito.fasta"     # Output download mitokondria
 
-# --- BIOLOGICAL PARAMETERS ---
-# Estimasi ukuran Plastome (untuk Flye/Canu)
-plastome_est_size: "150k"
+# --- OUTPUT PATHS ---
+reference_out: "resources/ref_tebu_plastome.fasta"
+mito_reference_out: "resources/ref_tebu_mito.fasta"
 
-# Range ukuran valid Plastome (untuk Smart Filter & Final Judge)
-plastome_min: 110000       # 110kb
-plastome_max: 180000       # 180kb
+# --- ASSEMBLY CONTROL ---
+# Pilihan: "PLASTOME", "MITO", atau "BOTH"
+target_assembly: "PLASTOME" 
 
-# Ukuran minimum contig yang dianggap 'Jumbo' (potensi mitokondria/sampah)
-blacklist_min_size: 200000 
+# --- TARGET ORGANISME (DINAMIS) ---
+# Ubah list ini sesuai sampel Anda (Misal ganti ke Oryza sativa untuk padi)
+query_taxa:
+  primary:
+    - "Saccharum officinarum"
+    - "Saccharum spontaneum"
+  secondary:
+    - "Miscanthus"
+    - "Sorghum"
+    - "Erianthus"
+  outgroup:
+    - "Zea mays"
 
-# --- MEDAKA MODEL ---
-# Sesuaikan dengan basecaller yang Anda gunakan (contoh: r941_min_sup_g507)
+# --- PARAMETER PENCARIAN NCBI ---
+# Plastome
+plastome_search_term: "chloroplast[Title] OR plastid[Title]"
+plastome_min_len: 100000
+plastome_max_len: 250000
+plastome_est_size: "150k" # Estimasi untuk assembler
+plastome_min: 100000      # Range validasi filter
+plastome_max: 200000
+
+# Mitochondria
+mito_search_term: "mitochondrion[Title] OR mitochondrial[Title]"
+mito_min_len: 200000
+mito_max_len: 10000000
+blacklist_min_size: 200000 # Batas ukuran contig sampah
+
+# --- TOOLS ---
 medaka_model: "r941_min_sup_g507"

@@ -4,39 +4,53 @@ import pandas as pd
 # 1. Baca daftar sampel
 samples = pd.read_csv(config["samples_file"], sep="\t").set_index("sample_id", drop=False)
 
-# 2. Target Akhir (All Rule)
-# Pipeline selesai jika semua sampel sudah punya 'best_assembly.fasta'
+# 2. Logic Target Akhir (Dynamic Rule All)
+# Pipeline akan menentukan output berdasarkan config['target_assembly']
+TARGETS = []
+
+# Jika mode PLASTOME atau BOTH, tambahkan hasil akhir plastome assembly
+if config["target_assembly"] in ["PLASTOME", "BOTH"]:
+    TARGETS.extend(expand("results/{sample}/07_best_candidate/best_assembly.fasta", sample=samples.index))
+
+# Jika mode MITO atau BOTH, tambahkan hasil akhir mito 
+# (Untuk saat ini kita targetkan referensinya dulu karena pipeline mito belum full)
+if config["target_assembly"] in ["MITO", "BOTH"]:
+    TARGETS.append(config["mito_reference_out"])
+
 rule all:
-    input:
-        expand("results/{sample}/07_best_candidate/best_assembly.fasta", sample=samples.index)
+    input: TARGETS
 
 # =============================================================================
-# PHASE 1: PREPARATION (Fetch References)
+# PHASE 1: UNIVERSAL FETCHING (Code Baru)
 # =============================================================================
 
-# Download Referensi Plastome (Otomatis via Python)
+# Download Referensi Plastome (Menggunakan Script Universal)
 rule fetch_plastome_ref:
     output:
         config["reference_out"]
-    conda:
-        "envs/blast_biopython.yaml"
-    script:
-        "scripts/fetch_refs.py"
+    params:
+        search_term = config["plastome_search_term"],
+        min_len = config["plastome_min_len"],
+        max_len = config["plastome_max_len"]
+    conda: "envs/blast_biopython.yaml"
+    script: "scripts/fetch_organelle_ref.py"
 
-# Download Referensi Mitokondria (Otomatis via Python)
+# Download Referensi Mitokondria (Menggunakan Script Universal yang SAMA)
 rule fetch_mito_ref:
     output:
         config["mito_reference_out"]
-    conda:
-        "envs/blast_biopython.yaml"
-    script:
-        "scripts/fetch_mito_refs.py"
+    params:
+        search_term = config["mito_search_term"],
+        min_len = config["mito_min_len"],
+        max_len = config["mito_max_len"]
+    conda: "envs/blast_biopython.yaml"
+    script: "scripts/fetch_organelle_ref.py"
 
 # =============================================================================
 # PHASE 2: ROUGH ASSEMBLY & SMART IDENTIFICATION
 # =============================================================================
 
-# Step 1: Raven Rough Assembly (Untuk dapat Graph & Contig Besar)
+# Step 1: Raven Rough Assembly
 rule rough_assembly_raven:
     input:
         reads = lambda wildcards: samples.loc[wildcards.sample, "reads_path"]
@@ -50,13 +64,13 @@ rule rough_assembly_raven:
         raven --threads {threads} --graphical-fragment-assembly {output.gfa} {input.reads} > {output.fasta}
         """
 
-# Step 2: Smart Filtering (Python Script: Graph + Identity Check)
+# Step 2: Smart Filtering (Graph + Identity Check)
 rule create_smart_blacklist:
     input:
         fasta = "results/{sample}/01_rough/assembly.fasta",
         gfa   = "results/{sample}/01_rough/assembly_graph.gfa",
-        ref_p = config["reference_out"],      # Dependency ke Phase 1
-        ref_m = config["mito_reference_out"]  # Dependency ke Phase 1
+        ref_p = config["reference_out"],
+        ref_m = config["mito_reference_out"]
     output:
         blacklist = "results/{sample}/02_blacklist/smart_blacklist.fasta",
         log       = "results/{sample}/02_blacklist/filter_logic.log"
@@ -94,7 +108,7 @@ rule filter_reads_dual:
 # PHASE 4: THE COMPETITION (Multi-Assembler)
 # =============================================================================
 
-# Assembler 1: Flye (Specialist Circular)
+# Assembler 1: Flye
 rule assemble_flye:
     input:
         "results/{sample}/03_filtered_reads/recruited_plastome.fastq"
@@ -112,7 +126,7 @@ rule assemble_flye:
              --genome-size {params.size} --meta --iterations 2
         """
 
-# Assembler 2: Raven (Aggressive)
+# Assembler 2: Raven
 rule assemble_raven_final:
     input:
         "results/{sample}/03_filtered_reads/recruited_plastome.fastq"
@@ -125,7 +139,7 @@ rule assemble_raven_final:
         raven --threads {threads} {input} > {output}
         """
 
-# Assembler 3: Canu (High Accuracy - Optional but included)
+# Assembler 3: Canu
 rule assemble_canu:
     input:
         "results/{sample}/03_filtered_reads/recruited_plastome.fastq"
@@ -138,7 +152,6 @@ rule assemble_canu:
     conda: "envs/canu.yaml"
     shell:
         """
-        # Canu perlu parameter khusus agar tidak terlalu lambat di genom kecil
         canu -p assembly -d {params.dir} genomeSize={params.size} \
              -nanopore {input} maxThreads={threads} useGrid=false \
              stopOnLowCoverage=5 minInputCoverage=5
@@ -148,7 +161,6 @@ rule assemble_canu:
 # PHASE 5: EQUALIZATION (Polishing)
 # =============================================================================
 
-# Poles Raven (karena output raw-nya kasar)
 rule polish_raven:
     input:
         reads = "results/{sample}/03_filtered_reads/recruited_plastome.fastq",
@@ -160,7 +172,6 @@ rule polish_raven:
     shell:
         "minipolish -t {threads} {input.reads} {input.draft} > {output}"
 
-# Poles Canu (output canu bernama assembly.contigs.fasta)
 rule polish_canu:
     input:
         reads = "results/{sample}/03_filtered_reads/recruited_plastome.fastq",
