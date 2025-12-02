@@ -10,3 +10,6 @@ results/
 
 # Ignore any *.cereal file (misalnya: raven.cereal)
 *.cereal
+
+# Ignore any *.fasta file
+*.fasta

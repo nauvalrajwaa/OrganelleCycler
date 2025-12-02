@@ -1,382 +1,0 @@
-Assuming unrestricted shared filesystem usage.
-host: PCA100196
-Building DAG of jobs...
-Creating conda environment envs/canu.yaml...
-Downloading and installing remote packages.
-Cleaning up conda package tarballs.
-Environment for /data/4.UGM/20231201_Melon/Melon/Tools/OrganelleCycler/envs/canu.yaml created (location: .snakemake/conda/ceb11391669142f0221279cb9373c715_)
-Creating conda environment envs/visualization.yaml...
-Downloading and installing remote packages.
-Cleaning up conda package tarballs.
-Environment for /data/4.UGM/20231201_Melon/Melon/Tools/OrganelleCycler/envs/visualization.yaml created (location: .snakemake/conda/828d191cef5fabbff171657b18c9a738_)
-Creating conda environment envs/minimap2.yaml...
-Downloading and installing remote packages.
-Cleaning up conda package tarballs.
-Environment for /data/4.UGM/20231201_Melon/Melon/Tools/OrganelleCycler/envs/minimap2.yaml created (location: .snakemake/conda/4e6de457bc36474a1465ba36520a1fb7_)
-Creating conda environment envs/flye.yaml...
-Downloading and installing remote packages.
-Cleaning up conda package tarballs.
-Environment for /data/4.UGM/20231201_Melon/Melon/Tools/OrganelleCycler/envs/flye.yaml created (location: .snakemake/conda/7285c2f18f34f2f8ba70926309ed1888_)
-Using shell: /usr/bin/bash
-Provided cores: 4
-Rules claiming more threads will be scaled down.
-Job stats:
-job                       count
-----------------------  -------
-all                           1
-assemble_canu                 1
-assemble_flye                 1
-assemble_raven_final          1
-create_smart_blacklist        1
-fetch_mito_ref                1
-fetch_plastome_ref            1
-filter_reads_dual             1
-generate_filter_report        1
-generate_final_report         1
-plot_filtered_graphs          1
-plot_final_graphs             1
-polish_canu                   1
-polish_raven                  1
-rough_assembly_flye           1
-rough_assembly_raven          1
-select_best_candidate         1
-total                        17
-
-Select jobs to execute...
-Failed to solve scheduling problem with ILP solver, falling back to greedy scheduler. You likely have to fix your ILP solver installation. Error message: PULP_CBC_CMD: Not Available (check permissions on cbc)
-Execute 1 jobs...
-
-[Tue Dec  2 08:19:52 2025]
-localrule rough_assembly_flye:
-    input: /home/prom/data/0.RAW/WGS/WGS/BL_tebu/20251128_1448_1B_PBC43447_0481364b/out_filter/baiting_plastome/filtered_plastome_ont.fastq
-    output: results/sample_01/01_rough/flye/assembly.fasta, results/sample_01/01_rough/flye/assembly_graph.gfa
-    jobid: 6
-    reason: Missing output files: results/sample_01/01_rough/flye/assembly.fasta, results/sample_01/01_rough/flye/assembly_graph.gfa
-    wildcards: sample=sample_01
-    threads: 4
-    resources: tmpdir=/tmp
-Activating conda environment: .snakemake/conda/7285c2f18f34f2f8ba70926309ed1888_
-[2025-12-02 08:19:52] INFO: Starting Flye 2.9.6-b1802
-[2025-12-02 08:19:52] INFO: >>>STAGE: configure
-[2025-12-02 08:19:52] INFO: Configuring run
-Select jobs to execute...
-[2025-12-02 08:19:56] INFO: Total read length: 932798559
-[2025-12-02 08:19:56] INFO: Reads N50/N90: 7645 / 2497
-[2025-12-02 08:19:56] INFO: Minimum overlap set to 2000
-[2025-12-02 08:19:56] INFO: >>>STAGE: assembly
-[2025-12-02 08:19:56] INFO: Assembling disjointigs
-[2025-12-02 08:19:56] INFO: Reading sequences
-[2025-12-02 08:19:58] INFO: Building minimizer index
-[2025-12-02 08:19:58] INFO: Pre-calculating index storage
-0% 10% 20% 30% 40% 50% 60% 70% 80% 90% 100% 
-[2025-12-02 08:20:15] INFO: Filling index
-0% 10% 20% 30% 40% 50% 60% 70% 80% 90% 100% 
-[2025-12-02 08:20:44] INFO: Extending reads
-[2025-12-02 08:21:13] INFO: Overlap-based coverage: 18
-[2025-12-02 08:21:13] INFO: Median overlap divergence: 0.0498753
-0% 10% 20% 30% 40% 50% 60% 70% 80% 90% 100% 
-[2025-12-02 08:31:54] INFO: Assembled 1653 disjointigs
-[2025-12-02 08:31:54] INFO: Generating sequence
-0% 10% 20% 30% 40% 50% 60% 70% 80% 90% 100% 
-[2025-12-02 08:31:59] INFO: Filtering contained disjointigs
-0% 10% 20% 30% 40% 50% 60% 70% 80% 90% 100% 
-[2025-12-02 08:32:15] INFO: Contained seqs: 79
-[2025-12-02 08:32:16] INFO: >>>STAGE: consensus
-[2025-12-02 08:32:16] INFO: Running Minimap2
-[2025-12-02 08:44:15] INFO: Computing consensus
-[2025-12-02 08:45:49] INFO: Alignment error rate: 0.068767
-[2025-12-02 08:45:49] INFO: >>>STAGE: repeat
-[2025-12-02 08:45:49] INFO: Building and resolving repeat graph
-[2025-12-02 08:45:49] INFO: Parsing disjointigs
-[2025-12-02 08:45:49] INFO: Building repeat graph
-0% 10% 20% 30% 40% 50% 60% 70% 80% 90% 100% 
-[2025-12-02 08:47:24] INFO: Median overlap divergence: 0.0977559
-[2025-12-02 08:47:25] INFO: Parsing reads
-[2025-12-02 08:47:27] INFO: Aligning reads to the graph
-0% 10% 20% 30% 40% 50% 60% 70% 80% 90% 100% 
-[2025-12-02 08:49:08] INFO: Aligned read sequence: 695766393 / 891409539 (0.780524)
-[2025-12-02 08:49:08] INFO: Median overlap divergence: 0.00800467
-[2025-12-02 08:49:08] INFO: Mean edge coverage: 15
-[2025-12-02 08:49:09] INFO: Simplifying the graph
-[2025-12-02 08:49:14] INFO: >>>STAGE: contigger
-[2025-12-02 08:49:14] INFO: Generating contigs
-[2025-12-02 08:49:14] INFO: Reading sequences
-[2025-12-02 08:49:18] INFO: Generated 1965 contigs
-[2025-12-02 08:49:19] INFO: Added 0 scaffold connections
-[2025-12-02 08:49:19] INFO: >>>STAGE: finalize
-[2025-12-02 08:49:20] INFO: Assembly statistics:
-
-	Total length:	34129777
-	Fragments:	1965
-	Fragments N50:	27471
-	Largest frg:	145992
-	Scaffolds:	0
-	Mean coverage:	12
-
-[2025-12-02 08:49:20] INFO: Final assembly: /data/4.UGM/20231201_Melon/Melon/Tools/OrganelleCycler/results/sample_01/01_rough/flye/assembly.fasta
-[Tue Dec  2 08:49:20 2025]
-Finished jobid: 6 (Rule: rough_assembly_flye)
-1 of 17 steps (6%) done
-Execute 1 jobs...
-
-[Tue Dec  2 08:49:20 2025]
-localrule rough_assembly_raven:
-    input: /home/prom/data/0.RAW/WGS/WGS/BL_tebu/20251128_1448_1B_PBC43447_0481364b/out_filter/baiting_plastome/filtered_plastome_ont.fastq
-    output: results/sample_01/01_rough/raven.fasta, results/sample_01/01_rough/raven.gfa
-    jobid: 5
-    reason: Missing output files: results/sample_01/01_rough/raven.fasta, results/sample_01/01_rough/raven.gfa
-    wildcards: sample=sample_01
-    threads: 4
-    resources: tmpdir=/tmp
-Activating conda environment: .snakemake/conda/a2b85232586cb93f4a93c6f3fbe39fad_
-Select jobs to execute...
-[raven::] loaded 167974 sequences 3.848069s
-[raven::Graph::Construct] minimized 0 - 167974 / 167974 13.549017s
-[raven::Graph::Construct] mapped sequences 74.955450s
-[raven::Graph::Construct] annotated piles 0.266344s
-[raven::Graph::Construct] removed contained sequences 0.204808s
-[raven::Graph::Construct] removed chimeric sequences 0.076917s
-[raven::Graph::Construct] reached checkpoint 0.119277s
-[raven::Graph::Construct] minimized 0 - 7305 / 7305 4.393396s
-[raven::Graph::Construct] mapped valid sequences 7.542677s
-[raven::Graph::Construct] updated overlaps 0.028515s
-[raven::Graph::Construct] removed false overlaps 0.252006s
-[raven::Graph::Construct] stored 13166 nodes 0.194483s
-[raven::Graph::Construct] stored 20914 edges 0.000000s
-[raven::Graph::Construct] reached checkpoint 0.267563s
-[raven::Graph::Construct] 102.145964s
-[raven::Graph::Assemble] removed transitive edges 0.046159s
-[raven::Graph::Assemble] reached checkpoint 0.276542s
-[raven::Graph::Assemble] removed tips and bubbles 0.735743s
-[raven::Graph::Assemble] reached checkpoint 0.262908s
-[raven::Graph::Assemble] removed long edges 2.098051s
-[raven::Graph::Assemble] reached checkpoint 0.250779s
-[raven::Graph::Assemble] 3.981294s
-[racon::Polisher::Polish] minimized 0 - 176 / 176 0.176494s
-[racon::Polisher::Polish] mapped sequences 22.109722s
-[racon::Polisher::Polish] found 163546 overlaps 22.440437s
-[racon::Polisher::Polish] reverse complemented sequences 0.035414s
-[racon::Polisher::Polish] aligned 10222 / 163546 overlaps [=>              ] 2.466769s[racon::Polisher::Polish] aligned 20444 / 163546 overlaps [==>             ] 5.338835s[racon::Polisher::Polish] aligned 30665 / 163546 overlaps [===>            ] 8.034275s[racon::Polisher::Polish] aligned 40887 / 163546 overlaps [====>           ] 10.690599s[racon::Polisher::Polish] aligned 51109 / 163546 overlaps [=====>          ] 13.362533s[racon::Polisher::Polish] aligned 61330 / 163546 overlaps [======>         ] 16.198426s[racon::Polisher::Polish] aligned 71552 / 163546 overlaps [=======>        ] 18.823160s[racon::Polisher::Polish] aligned 81773 / 163546 overlaps [========>       ] 21.630013s[racon::Polisher::Polish] aligned 91995 / 163546 overlaps [=========>      ] 23.899795s[racon::Polisher::Polish] aligned 102217 / 163546 overlaps [==========>     ] 26.493153s[racon::Polisher::Polish] aligned 112438 / 163546 overlaps [===========>    ] 29.243869s[racon::Polisher::Polish] aligned 122660 / 163546 overlaps [============>   ] 31.793796s[racon::Polisher::Polish] aligned 132882 / 163546 overlaps [=============>  ] 34.225280s[racon::Polisher::Polish] aligned 143103 / 163546 overlaps [==============> ] 36.918058s[racon::Polisher::Polish] aligned 153325 / 163546 overlaps [===============>] 39.605954s[racon::Polisher::Polish] aligned 163546 / 163546 overlaps [================] 42.009229s
-[racon::Polisher::Polish] prepared 9919 window placeholders 0.866855s
-[racon::Polisher::Polish] called consensus for 620 / 9919 windows [=>              ] 2.489900s[racon::Polisher::Polish] called consensus for 1240 / 9919 windows [==>             ] 4.647179s[racon::Polisher::Polish] called consensus for 1860 / 9919 windows [===>            ] 7.678898s[racon::Polisher::Polish] called consensus for 2480 / 9919 windows [====>           ] 9.760816s[racon::Polisher::Polish] called consensus for 3100 / 9919 windows [=====>          ] 12.030315s[racon::Polisher::Polish] called consensus for 3720 / 9919 windows [======>         ] 14.002980s[racon::Polisher::Polish] called consensus for 4340 / 9919 windows [=======>        ] 50.513035s[racon::Polisher::Polish] called consensus for 4960 / 9919 windows [========>       ] 109.029508s[racon::Polisher::Polish] called consensus for 5580 / 9919 windows [=========>      ] 111.594655s[racon::Polisher::Polish] called consensus for 6200 / 9919 windows [==========>     ] 113.781811s[racon::Polisher::Polish] called consensus for 6820 / 9919 windows [===========>    ] 115.549178s[racon::Polisher::Polish] called consensus for 7440 / 9919 windows [============>   ] 119.473243s[racon::Polisher::Polish] called consensus for 8060 / 9919 windows [=============>  ] 120.706300s[racon::Polisher::Polish] called consensus for 8680 / 9919 windows [==============> ] 122.253148s[racon::Polisher::Polish] called consensus for 9300 / 9919 windows [===============>] 124.328313s[racon::Polisher::Polish] called consensus for 9919 / 9919 windows [================] 125.633328s
-[racon::Polisher::Polish] 191.042776s
-[raven::Graph::Polish] reached checkpoint 0.027357s
-[racon::Polisher::Polish] minimized 0 - 176 / 176 0.183497s
-[racon::Polisher::Polish] mapped sequences 23.663339s
-[racon::Polisher::Polish] found 164241 overlaps 24.001825s
-[racon::Polisher::Polish] reverse complemented sequences 0.005718s
-[racon::Polisher::Polish] aligned 10266 / 164241 overlaps [=>              ] 2.328500s[racon::Polisher::Polish] aligned 20531 / 164241 overlaps [==>             ] 5.083527s[racon::Polisher::Polish] aligned 30796 / 164241 overlaps [===>            ] 7.636777s[racon::Polisher::Polish] aligned 41061 / 164241 overlaps [====>           ] 10.493896s[racon::Polisher::Polish] aligned 51326 / 164241 overlaps [=====>          ] 13.327479s[racon::Polisher::Polish] aligned 61591 / 164241 overlaps [======>         ] 16.013790s[racon::Polisher::Polish] aligned 71856 / 164241 overlaps [=======>        ] 18.731210s[racon::Polisher::Polish] aligned 82121 / 164241 overlaps [========>       ] 21.097345s[racon::Polisher::Polish] aligned 92386 / 164241 overlaps [=========>      ] 23.412869s[racon::Polisher::Polish] aligned 102651 / 164241 overlaps [==========>     ] 25.924690s[racon::Polisher::Polish] aligned 112916 / 164241 overlaps [===========>    ] 28.411804s[racon::Polisher::Polish] aligned 123181 / 164241 overlaps [============>   ] 31.020024s[racon::Polisher::Polish] aligned 133446 / 164241 overlaps [=============>  ] 33.673788s[racon::Polisher::Polish] aligned 143711 / 164241 overlaps [==============> ] 36.316451s[racon::Polisher::Polish] aligned 153976 / 164241 overlaps [===============>] 38.968320s[racon::Polisher::Polish] aligned 164241 / 164241 overlaps [================] 41.222637s
-[racon::Polisher::Polish] prepared 9805 window placeholders 0.920537s
-[racon::Polisher::Polish] called consensus for 613 / 9805 windows [=>              ] 2.769282s[racon::Polisher::Polish] called consensus for 1226 / 9805 windows [==>             ] 4.774335s[racon::Polisher::Polish] called consensus for 1839 / 9805 windows [===>            ] 8.395835s[racon::Polisher::Polish] called consensus for 2452 / 9805 windows [====>           ] 11.525942s[racon::Polisher::Polish] called consensus for 3065 / 9805 windows [=====>          ] 14.117401s[racon::Polisher::Polish] called consensus for 3677 / 9805 windows [======>         ] 16.206027s[racon::Polisher::Polish] called consensus for 4290 / 9805 windows [=======>        ] 54.289275s[racon::Polisher::Polish] called consensus for 4903 / 9805 windows [========>       ] 109.874528s[racon::Polisher::Polish] called consensus for 5516 / 9805 windows [=========>      ] 111.961222s[racon::Polisher::Polish] called consensus for 6129 / 9805 windows [==========>     ] 113.847120s[racon::Polisher::Polish] called consensus for 6741 / 9805 windows [===========>    ] 115.774132s[racon::Polisher::Polish] called consensus for 7354 / 9805 windows [============>   ] 119.702581s[racon::Polisher::Polish] called consensus for 7967 / 9805 windows [=============>  ] 121.348330s[racon::Polisher::Polish] called consensus for 8580 / 9805 windows [==============> ] 123.343692s[racon::Polisher::Polish] called consensus for 9193 / 9805 windows [===============>] 125.386621s[racon::Polisher::Polish] called consensus for 9805 / 9805 windows [================] 126.313552s
-[racon::Polisher::Polish] 192.520781s
-[raven::Graph::Polish] reached checkpoint 0.013015s
-[raven::] 494.380263s
-[Tue Dec  2 08:57:35 2025]
-Finished jobid: 5 (Rule: rough_assembly_raven)
-2 of 17 steps (12%) done
-Execute 2 jobs...
-
-[Tue Dec  2 08:57:35 2025]
-localrule fetch_plastome_ref:
-    output: resources/ref_tebu_plastome.fasta
-    jobid: 7
-    reason: Missing output files: resources/ref_tebu_plastome.fasta
-    resources: tmpdir=/tmp
-[Tue Dec  2 08:57:35 2025]
-localrule fetch_mito_ref:
-    output: resources/ref_tebu_mito.fasta
-    jobid: 8
-    reason: Missing output files: resources/ref_tebu_mito.fasta
-    resources: tmpdir=/tmp
-Activating conda environment: .snakemake/conda/4b3e4158eaddd71c05342dd92bc78263_
-Activating conda environment: .snakemake/conda/4b3e4158eaddd71c05342dd92bc78263_
-Activating conda environment: .snakemake/conda/4b3e4158eaddd71c05342dd92bc78263_
-Activating conda environment: .snakemake/conda/4b3e4158eaddd71c05342dd92bc78263_
---- [NCBI FETCH] Target: resources/ref_tebu_plastome.fasta ---
---- Query Type: chloroplast[Title] OR plastid[Title] ---
-
-Scanning Category: primary (Max: 20)
-   [+] Saccharum officinarum: 4 found.
-   [+] Saccharum spontaneum: 20 found.
-
-Scanning Category: secondary (Max: 5)
-   [+] Miscanthus: 5 found.
-   [+] Sorghum: 5 found.
-   [-] Erianthus: None.
-
-Scanning Category: outgroup (Max: 2)
-   [+] Zea mays: 2 found.
-
-Downloading 36 sequences...
-Download Selesai.
-[Tue Dec  2 08:57:47 2025]
-Finished jobid: 7 (Rule: fetch_plastome_ref)
-3 of 17 steps (18%) done
---- [NCBI FETCH] Target: resources/ref_tebu_mito.fasta ---
---- Query Type: mitochondrion[Title] OR mitochondrial[Title] ---
-
-Scanning Category: primary (Max: 20)
-   [+] Saccharum officinarum: 10 found.
-   [+] Saccharum spontaneum: 6 found.
-
-Scanning Category: secondary (Max: 5)
-   [+] Miscanthus: 2 found.
-   [+] Sorghum: 3 found.
-   [-] Erianthus: None.
-
-Scanning Category: outgroup (Max: 2)
-   [+] Zea mays: 2 found.
-
-Downloading 23 sequences...
-Download Selesai.
-[Tue Dec  2 08:57:48 2025]
-Finished jobid: 8 (Rule: fetch_mito_ref)
-4 of 17 steps (24%) done
-Select jobs to execute...
-Execute 1 jobs...
-
-[Tue Dec  2 08:57:48 2025]
-localrule create_smart_blacklist:
-    input: results/sample_01/01_rough/raven.fasta, results/sample_01/01_rough/flye/assembly.fasta, results/sample_01/01_rough/raven.gfa, results/sample_01/01_rough/flye/assembly_graph.gfa, resources/ref_tebu_plastome.fasta, resources/ref_tebu_mito.fasta
-    output: results/sample_01/02_blacklist/smart_blacklist.fasta, results/sample_01/02_blacklist/filter_logic.log, results/sample_01/02_blacklist/raven_filtered.gfa, results/sample_01/02_blacklist/flye_filtered.gfa
-    jobid: 4
-    reason: Missing output files: results/sample_01/02_blacklist/smart_blacklist.fasta, results/sample_01/02_blacklist/filter_logic.log, results/sample_01/02_blacklist/flye_filtered.gfa, results/sample_01/02_blacklist/raven_filtered.gfa; Input files updated by another job: results/sample_01/01_rough/raven.fasta, resources/ref_tebu_plastome.fasta, results/sample_01/01_rough/flye/assembly.fasta, results/sample_01/01_rough/raven.gfa, resources/ref_tebu_mito.fasta, results/sample_01/01_rough/flye/assembly_graph.gfa
-    wildcards: sample=sample_01
-    resources: tmpdir=/tmp
-Activating conda environment: .snakemake/conda/4b3e4158eaddd71c05342dd92bc78263_
-Activating conda environment: .snakemake/conda/4b3e4158eaddd71c05342dd92bc78263_
-[M::mm_idx_gen::0.087*1.01] collected minimizers
-[M::mm_idx_gen::0.101*1.39] sorted minimizers
-[M::main::0.101*1.39] loaded/built the index for 36 target sequence(s)
-[M::mm_mapopt_update::0.101*1.39] mid_occ = 109
-[M::mm_idx_stat] kmer size: 19; skip: 19; is_hpc: 0; #seq: 36
-[M::mm_idx_stat::0.102*1.39] distinct minimizers: 16064 (5.99% are singletons); average occurrences: 31.896; average spacing: 9.915; total length: 5080047
-[M::worker_pipeline::0.745*1.39] mapped 176 sequences
-[M::main] Version: 2.30-r1287
-[M::main] CMD: minimap2 -x asm5 -t 4 resources/ref_tebu_plastome.fasta results/sample_01/01_rough/raven.fasta
-[M::main] Real time: 0.748 sec; CPU: 1.042 sec; Peak RSS: 0.064 GB
-[M::mm_idx_gen::0.137*1.01] collected minimizers
-[M::mm_idx_gen::0.153*1.30] sorted minimizers
-[M::main::0.154*1.30] loaded/built the index for 23 target sequence(s)
-[M::mm_mapopt_update::0.156*1.30] mid_occ = 59
-[M::mm_idx_stat] kmer size: 19; skip: 19; is_hpc: 0; #seq: 23
-[M::mm_idx_stat::0.158*1.30] distinct minimizers: 108291 (28.95% are singletons); average occurrences: 7.539; average spacing: 9.973; total length: 8142667
-[M::worker_pipeline::0.431*2.22] mapped 176 sequences
-[M::main] Version: 2.30-r1287
-[M::main] CMD: minimap2 -x asm5 -t 4 resources/ref_tebu_mito.fasta results/sample_01/01_rough/raven.fasta
-[M::main] Real time: 0.435 sec; CPU: 0.959 sec; Peak RSS: 0.072 GB
-[M::mm_idx_gen::0.086*1.01] collected minimizers
-[M::mm_idx_gen::0.099*1.39] sorted minimizers
-[M::main::0.099*1.39] loaded/built the index for 36 target sequence(s)
-[M::mm_mapopt_update::0.100*1.39] mid_occ = 109
-[M::mm_idx_stat] kmer size: 19; skip: 19; is_hpc: 0; #seq: 36
-[M::mm_idx_stat::0.100*1.39] distinct minimizers: 16064 (5.99% are singletons); average occurrences: 31.896; average spacing: 9.915; total length: 5080047
-[M::worker_pipeline::0.625*3.14] mapped 1965 sequences
-[M::main] Version: 2.30-r1287
-[M::main] CMD: minimap2 -x asm5 -t 4 resources/ref_tebu_plastome.fasta results/sample_01/01_rough/flye/assembly.fasta
-[M::main] Real time: 0.629 sec; CPU: 1.967 sec; Peak RSS: 0.061 GB
-[M::mm_idx_gen::0.138*1.01] collected minimizers
-[M::mm_idx_gen::0.155*1.32] sorted minimizers
-[M::main::0.155*1.32] loaded/built the index for 23 target sequence(s)
-[M::mm_mapopt_update::0.157*1.31] mid_occ = 59
-[M::mm_idx_stat] kmer size: 19; skip: 19; is_hpc: 0; #seq: 23
-[M::mm_idx_stat::0.159*1.31] distinct minimizers: 108291 (28.95% are singletons); average occurrences: 7.539; average spacing: 9.973; total length: 8142667
-[M::worker_pipeline::0.695*2.80] mapped 1965 sequences
-[M::main] Version: 2.30-r1287
-[M::main] CMD: minimap2 -x asm5 -t 4 resources/ref_tebu_mito.fasta results/sample_01/01_rough/flye/assembly.fasta
-[M::main] Real time: 0.699 sec; CPU: 1.948 sec; Peak RSS: 0.097 GB
-[Tue Dec  2 08:57:52 2025]
-Finished jobid: 4 (Rule: create_smart_blacklist)
-5 of 17 steps (29%) done
-Select jobs to execute...
-Execute 2 jobs...
-
-[Tue Dec  2 08:57:52 2025]
-localrule filter_reads_dual:
-    input: /home/prom/data/0.RAW/WGS/WGS/BL_tebu/20251128_1448_1B_PBC43447_0481364b/out_filter/baiting_plastome/filtered_plastome_ont.fastq, results/sample_01/02_blacklist/smart_blacklist.fasta, resources/ref_tebu_plastome.fasta
-    output: results/sample_01/03_temp/filtered_neg.fastq, results/sample_01/03_filtered_reads/recruited_reads.fastq
-    jobid: 3
-    reason: Missing output files: results/sample_01/03_filtered_reads/recruited_reads.fastq; Input files updated by another job: results/sample_01/02_blacklist/smart_blacklist.fasta, resources/ref_tebu_plastome.fasta
-    wildcards: sample=sample_01
-    threads: 4
-    resources: tmpdir=/tmp
-Activating conda environment: .snakemake/conda/4e6de457bc36474a1465ba36520a1fb7_
-
-[Tue Dec  2 08:57:52 2025]
-localrule plot_filtered_graphs:
-    input: results/sample_01/02_blacklist/raven_filtered.gfa, results/sample_01/02_blacklist/flye_filtered.gfa
-    output: results/sample_01/02_blacklist/viz/raven_filtered.png, results/sample_01/02_blacklist/viz/flye_filtered.png
-    jobid: 14
-    reason: Missing output files: results/sample_01/02_blacklist/viz/flye_filtered.png, results/sample_01/02_blacklist/viz/raven_filtered.png; Input files updated by another job: results/sample_01/02_blacklist/flye_filtered.gfa, results/sample_01/02_blacklist/raven_filtered.gfa
-    wildcards: sample=sample_01
-    resources: tmpdir=/tmp
-Activating conda environment: .snakemake/conda/828d191cef5fabbff171657b18c9a738_
-
-Bandage error: could not load results/sample_01/02_blacklist/flye_filtered.gfa
-RuleException:
-CalledProcessError in file "/data/4.UGM/20231201_Melon/Melon/Tools/OrganelleCycler/Snakefile", line 131:
-Command 'source /home/prom/miniconda3/bin/activate '/data/4.UGM/20231201_Melon/Melon/Tools/OrganelleCycler/.snakemake/conda/828d191cef5fabbff171657b18c9a738_'; set -euo pipefail;  
-        Bandage image results/sample_01/02_blacklist/raven_filtered.gfa results/sample_01/02_blacklist/viz/raven_filtered.png --height 800 --width 800 --nodewidth 15 --fontsize 20
-        Bandage image results/sample_01/02_blacklist/flye_filtered.gfa results/sample_01/02_blacklist/viz/flye_filtered.png --height 800 --width 800 --nodewidth 15 --fontsize 20' returned non-zero exit status 1.
-[Tue Dec  2 08:57:52 2025]
-Error in rule plot_filtered_graphs:
-    message: None
-    jobid: 14
-    input: results/sample_01/02_blacklist/raven_filtered.gfa, results/sample_01/02_blacklist/flye_filtered.gfa
-    output: results/sample_01/02_blacklist/viz/raven_filtered.png, results/sample_01/02_blacklist/viz/flye_filtered.png
-    conda-env: /data/4.UGM/20231201_Melon/Melon/Tools/OrganelleCycler/.snakemake/conda/828d191cef5fabbff171657b18c9a738_
-    shell:
-        
-        Bandage image results/sample_01/02_blacklist/raven_filtered.gfa results/sample_01/02_blacklist/viz/raven_filtered.png --height 800 --width 800 --nodewidth 15 --fontsize 20
-        Bandage image results/sample_01/02_blacklist/flye_filtered.gfa results/sample_01/02_blacklist/viz/flye_filtered.png --height 800 --width 800 --nodewidth 15 --fontsize 20
-        
-        (command exited with non-zero exit code)
-Removing output files of failed job plot_filtered_graphs since they might be corrupted:
-results/sample_01/02_blacklist/viz/raven_filtered.png
-[M::mm_idx_gen::0.225*1.01] collected minimizers
-[M::mm_idx_gen::0.276*1.54] sorted minimizers
-[M::main::0.276*1.54] loaded/built the index for 1045 target sequence(s)
-[M::mm_mapopt_update::0.301*1.49] mid_occ = 33
-[M::mm_idx_stat] kmer size: 15; skip: 10; is_hpc: 0; #seq: 1045
-[M::mm_idx_stat::0.316*1.47] distinct minimizers: 1528920 (83.02% are singletons); average occurrences: 1.294; average spacing: 5.345; total length: 10576141
-[M::worker_pipeline::221.635*3.99] mapped 90264 sequences
-[M::worker_pipeline::402.813*3.92] mapped 77710 sequences
-[M::main] Version: 2.28-r1209
-[M::main] CMD: minimap2 -ax map-ont -t 4 results/sample_01/02_blacklist/smart_blacklist.fasta /home/prom/data/0.RAW/WGS/WGS/BL_tebu/20251128_1448_1B_PBC43447_0481364b/out_filter/baiting_plastome/filtered_plastome_ont.fastq
-[M::main] Real time: 402.919 sec; CPU: 1578.885 sec; Peak RSS: 3.646 GB
-[M::bam2fq_mainloop] discarded 0 singletons
-[M::bam2fq_mainloop] processed 1912 reads
-[M::mm_idx_gen::0.110*1.01] collected minimizers
-[M::mm_idx_gen::0.135*1.55] sorted minimizers
-[M::main::0.136*1.55] loaded/built the index for 36 target sequence(s)
-[M::mm_mapopt_update::0.136*1.55] mid_occ = 109
-[M::mm_idx_stat] kmer size: 15; skip: 10; is_hpc: 0; #seq: 36
-[M::mm_idx_stat::0.137*1.55] distinct minimizers: 27821 (4.47% are singletons); average occurrences: 34.085; average spacing: 5.357; total length: 5080047
-[M::worker_pipeline::2.872*3.46] mapped 1912 sequences
-[M::main] Version: 2.28-r1209
-[M::main] CMD: minimap2 -ax map-ont -t 4 resources/ref_tebu_plastome.fasta results/sample_01/03_temp/filtered_neg.fastq
-[M::main] Real time: 2.877 sec; CPU: 9.953 sec; Peak RSS: 0.102 GB
-[M::bam2fq_mainloop] discarded 0 singletons
-[M::bam2fq_mainloop] processed 1900 reads
-[Tue Dec  2 09:04:38 2025]
-Finished jobid: 3 (Rule: filter_reads_dual)
-6 of 17 steps (35%) done
-Removing temporary output results/sample_01/03_temp/filtered_neg.fastq.
-Shutting down, this might take some time.
-Exiting because a job execution failed. Look below for error messages
-[Tue Dec  2 09:04:38 2025]
-Error in rule plot_filtered_graphs:
-    message: None
-    jobid: 14
-    input: results/sample_01/02_blacklist/raven_filtered.gfa, results/sample_01/02_blacklist/flye_filtered.gfa
-    output: results/sample_01/02_blacklist/viz/raven_filtered.png, results/sample_01/02_blacklist/viz/flye_filtered.png
-    conda-env: /data/4.UGM/20231201_Melon/Melon/Tools/OrganelleCycler/.snakemake/conda/828d191cef5fabbff171657b18c9a738_
-    shell:
-        
-        Bandage image results/sample_01/02_blacklist/raven_filtered.gfa results/sample_01/02_blacklist/viz/raven_filtered.png --height 800 --width 800 --nodewidth 15 --fontsize 20
-        Bandage image results/sample_01/02_blacklist/flye_filtered.gfa results/sample_01/02_blacklist/viz/flye_filtered.png --height 800 --width 800 --nodewidth 15 --fontsize 20
-        
-        (command exited with non-zero exit code)
-Complete log(s): /data/4.UGM/20231201_Melon/Melon/Tools/OrganelleCycler/.snakemake/log/2025-12-02T075922.477986.snakemake.log
-WorkflowError:
-At least one job did not complete successfully.
