@@ -1,0 +1,8 @@
+name: mitohifi
+channels:
+  - bioconda
+  - conda-forge
+  - defaults
+dependencies:
+  - mitohifi
+  - python=3.9  # MitoHiFi stabil di python 3.9
