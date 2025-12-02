@@ -1,6 +1,12 @@
+# Ignore Snakemake runtime
 .snakemake/
+
+# Ignore common output directories
 logs/
 results/
 
-.log
-.cereal
+# Ignore any *.log file
+*.log
+
+# Ignore any *.cereal file (misalnya: raven.cereal)
+*.cereal
