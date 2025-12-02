@@ -1,3 +1,5 @@
+# /scripts/assess_assemblies.py
+
 import sys
 import os
 import pandas as pd
@@ -10,17 +12,18 @@ if 'snakemake' in globals():
     # Input files
     in_flye = snakemake.input.flye
     in_raven = snakemake.input.raven
-    # in_canu = snakemake.input.canu  # (Opsional, aktifkan jika pakai Canu)
+    in_canu = snakemake.input.canu  # AKTIF: Input dari Canu
     
+    # Reference file (Dinamis: Plastome atau Mito tergantung Snakefile)
     ref_file = snakemake.input.ref
     
     # Output files
     out_fasta = snakemake.output.best
     out_report = snakemake.output.report
     
-    # Parameters
-    min_len = snakemake.config["plastome_min"]
-    max_len = snakemake.config["plastome_max"]
+    # Parameters (Diambil dari 'params' Snakefile agar dinamis)
+    min_len = snakemake.params.min_len
+    max_len = snakemake.params.max_len
 else:
     sys.exit("Script ini harus dijalankan via Snakemake.")
 
@@ -63,7 +66,7 @@ def get_blast_metrics(query_fasta, subject_fasta):
 def check_overlap_circularity(seq_obj, overlap_len=1000):
     """
     Cek manual: Apakah ujung depan dan ujung belakang sama?
-    (Raven kadang menghasilkan output linear tapi sebenarnya ujungnya overlap)
+    (Raven/Canu kadang menghasilkan output linear tapi sebenarnya ujungnya overlap)
     """
     seq = str(seq_obj.seq)
     if len(seq) < overlap_len * 2: return False
@@ -72,7 +75,6 @@ def check_overlap_circularity(seq_obj, overlap_len=1000):
     end = seq[-overlap_len:]
     
     # Simple string matching (exact match)
-    # Untuk lebih akurat bisa pakai alignment, tapi ini cukup untuk heuristic
     if start == end: 
         return True
     return False
@@ -86,11 +88,11 @@ def evaluate_assemblies():
     # Format: (Nama_Tool, File_Path)
     tools_to_check = [
         ("Flye", in_flye),
-        ("Raven", in_raven)
-        # ("Canu", in_canu) # Uncomment jika Canu aktif
+        ("Raven", in_raven),
+        ("Canu", in_canu) # AKTIF: Canu dimasukkan ke penilaian
     ]
     
-    print("--- MEMULAI PENILAIAN KANDIDAT ---")
+    print(f"--- MEMULAI PENILAIAN KANDIDAT (Target Size: {min_len}-{max_len} bp) ---")
     
     for tool_name, fasta_path in tools_to_check:
         if not os.path.exists(fasta_path):
@@ -99,7 +101,7 @@ def evaluate_assemblies():
         for record in SeqIO.parse(fasta_path, "fasta"):
             length = len(record.seq)
             
-            # 1. HARD FILTER: Ukuran
+            # 1. HARD FILTER: Ukuran (Dinamis sesuai Target)
             if not (min_len <= length <= max_len):
                 # Skip contig yang terlalu kecil/besar
                 continue
@@ -113,7 +115,7 @@ def evaluate_assemblies():
             elif check_overlap_circularity(record):
                 is_circular = True
                 
-            # 3. CEK BLAST (Kualitas)
+            # 3. CEK BLAST (Kualitas vs Reference yang sesuai)
             # Tulis contig tunggal ke temp file untuk di-blast
             temp_ctg = f"temp_{tool_name}.fasta"
             SeqIO.write(record, temp_ctg, "fasta")
@@ -166,8 +168,8 @@ def evaluate_assemblies():
         if winner["score"] > 0:
             best_record = winner["record"]
             # Rename header biar rapi
-            best_record.description = f"source={winner['tool']} length={winner['len']} circular={winner['circ']} coverage={winner['cov']:.2f}"
-            best_record.id = "Plastome_Consensus"
+            best_record.description = f"source={winner['tool']} length={winner['len']} circular={winner['circ']} coverage={winner['cov']:.2f} identity={winner['ident']:.2f}"
+            best_record.id = "Target_Consensus"
             report_lines.append(f"\nWINNER: {winner['tool']} (Score: {winner['score']})")
         else:
             report_lines.append("\nNO WINNER: Top candidate score is too low (Bad Identity).")
