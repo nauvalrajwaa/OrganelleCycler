@@ -1,0 +1,6 @@
+.snakemake/
+logs/
+results/
+
+.log
+.cereal

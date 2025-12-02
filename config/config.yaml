@@ -1,6 +1,6 @@
 # --- SYSTEM SETTINGS ---
 threads: 8
-email: "anda@email.com"  # Wajib diisi
+email: "nauvalrajwaa@gmail.com"  # Wajib diisi
 samples_file: "config/samples.tsv"
 
 # --- OUTPUT PATHS ---
@@ -10,6 +10,8 @@ mito_reference_out: "resources/ref_tebu_mito.fasta"
 # --- ASSEMBLY CONTROL ---
 # Pilihan: "PLASTOME", "MITO", atau "BOTH"
 target_assembly: "PLASTOME" 
+# Pilihan: sesuaikan dengan genome size target
+target_est_size: "150k" # Estimasi untuk assembler
 
 # --- TARGET ORGANISME (DINAMIS) ---
 # Ubah list ini sesuai sampel Anda (Misal ganti ke Oryza sativa untuk padi)
@@ -29,7 +31,6 @@ query_taxa:
 plastome_search_term: "chloroplast[Title] OR plastid[Title]"
 plastome_min_len: 100000
 plastome_max_len: 250000
-plastome_est_size: "150k" # Estimasi untuk assembler
 plastome_min: 100000      # Range validasi filter
 plastome_max: 200000
 

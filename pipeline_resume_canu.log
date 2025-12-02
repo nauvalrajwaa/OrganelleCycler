@@ -1,0 +1,71 @@
+Assuming unrestricted shared filesystem usage.
+host: PCA100196
+Building DAG of jobs...
+Using shell: /usr/bin/bash
+Provided cores: 8
+Rules claiming more threads will be scaled down.
+Job stats:
+job                       count
+----------------------  -------
+all                           1
+generate_filter_report        1
+generate_final_report         1
+select_best_candidate         1
+total                         4
+
+Select jobs to execute...
+Failed to solve scheduling problem with ILP solver, falling back to greedy scheduler. You likely have to fix your ILP solver installation. Error message: PULP_CBC_CMD: Not Available (check permissions on cbc)
+Execute 2 jobs...
+
+[Tue Dec  2 09:31:24 2025]
+localrule select_best_candidate:
+    input: results/sample_01/04_assemblies/flye/assembly.fasta, results/sample_01/05_polished/raven_polished.fasta, results/sample_01/05_polished/canu_polished.fasta, resources/ref_tebu_plastome.fasta
+    output: results/sample_01/07_best_candidate/best_assembly.fasta, results/sample_01/07_best_candidate/selection_report.txt
+    jobid: 1
+    reason: Missing output files: results/sample_01/07_best_candidate/best_assembly.fasta, results/sample_01/07_best_candidate/selection_report.txt
+    wildcards: sample=sample_01
+    resources: tmpdir=/tmp
+[Tue Dec  2 09:31:24 2025]
+localrule generate_filter_report:
+    input: results/sample_01/02_blacklist/filter_logic.log, results/sample_01/02_blacklist/viz/raven_filtered.png, results/sample_01/02_blacklist/viz/flye_filtered.png
+    output: results/sample_01/02_blacklist/filtering_report.html
+    jobid: 13
+    reason: Missing output files: results/sample_01/02_blacklist/filtering_report.html
+    wildcards: sample=sample_01
+    resources: tmpdir=/tmp
+Activating conda environment: .snakemake/conda/4b3e4158eaddd71c05342dd92bc78263_
+[Tue Dec  2 09:31:24 2025]
+Finished jobid: 13 (Rule: generate_filter_report)
+1 of 4 steps (25%) done
+Activating conda environment: .snakemake/conda/4b3e4158eaddd71c05342dd92bc78263_
+--- MEMULAI PENILAIAN KANDIDAT (Target Size: 100000-200000 bp) ---
+[Tue Dec  2 09:31:25 2025]
+Finished jobid: 1 (Rule: select_best_candidate)
+2 of 4 steps (50%) done
+Select jobs to execute...
+Execute 1 jobs...
+
+[Tue Dec  2 09:31:25 2025]
+localrule generate_final_report:
+    input: results/sample_01/07_best_candidate/selection_report.txt, results/sample_01/07_best_candidate/viz/flye_final.png, results/sample_01/07_best_candidate/viz/raven_final.png, results/sample_01/07_best_candidate/viz/canu_final.png
+    output: results/sample_01/07_best_candidate/FINAL_ASSEMBLY_REPORT.html
+    jobid: 15
+    reason: Missing output files: results/sample_01/07_best_candidate/FINAL_ASSEMBLY_REPORT.html; Input files updated by another job: results/sample_01/07_best_candidate/selection_report.txt
+    wildcards: sample=sample_01
+    resources: tmpdir=/tmp
+[Tue Dec  2 09:31:25 2025]
+Finished jobid: 15 (Rule: generate_final_report)
+3 of 4 steps (75%) done
+Select jobs to execute...
+Execute 1 jobs...
+
+[Tue Dec  2 09:31:25 2025]
+localrule all:
+    input: results/sample_01/07_best_candidate/best_assembly.fasta, results/sample_01/02_blacklist/filtering_report.html, results/sample_01/07_best_candidate/FINAL_ASSEMBLY_REPORT.html
+    jobid: 0
+    reason: Input files updated by another job: results/sample_01/07_best_candidate/best_assembly.fasta, results/sample_01/07_best_candidate/FINAL_ASSEMBLY_REPORT.html, results/sample_01/02_blacklist/filtering_report.html
+    resources: tmpdir=/tmp
+[Tue Dec  2 09:31:25 2025]
+Finished jobid: 0 (Rule: all)
+4 of 4 steps (100%) done
+Complete log(s): /data/4.UGM/20231201_Melon/Melon/Tools/OrganelleCycler/.snakemake/log/2025-12-02T093123.024868.snakemake.log

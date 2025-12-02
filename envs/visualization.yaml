@@ -4,5 +4,6 @@ channels:
   - bioconda
   - defaults
 dependencies:
-  - bandage-ng  # Versi Bandage yang lebih baru dan maintened
-  - imagemagick # Untuk menggabungkan gambar menjadi grid
+  - bandage      # <--- GANTI DARI bandage-ng KE bandage
+  - imagemagick
+  - graphviz     # Tambahan opsional untuk dependensi gambar

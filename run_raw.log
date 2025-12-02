@@ -1,0 +1,59 @@
+Assuming unrestricted shared filesystem usage.
+host: PCA100196
+Building DAG of jobs...
+Using shell: /usr/bin/bash
+Provided cores: 8
+Rules claiming more threads will be scaled down.
+Job stats:
+job                       count
+----------------------  -------
+all                           1
+assemble_canu                 1
+assemble_flye                 1
+assemble_raven_final          1
+create_smart_blacklist        1
+filter_reads_dual             1
+generate_filter_report        1
+generate_final_report         1
+plot_filtered_graphs          1
+plot_final_graphs             1
+polish_canu                   1
+polish_raven                  1
+rough_assembly_flye           1
+rough_assembly_raven          1
+select_best_candidate         1
+total                        15
+
+Select jobs to execute...
+Failed to solve scheduling problem with ILP solver, falling back to greedy scheduler. You likely have to fix your ILP solver installation. Error message: PULP_CBC_CMD: Not Available (check permissions on cbc)
+Execute 1 jobs...
+
+[Tue Dec  2 10:36:12 2025]
+localrule rough_assembly_flye:
+    input: /home/prom/data/0.RAW/WGS/WGS/BL_tebu/20251128_1448_1B_PBC43447_0481364b/out_filter/porechop/sub1_BL_tebu_merged_raw_clean.fastq
+    output: results/sample_02/01_rough/flye/assembly.fasta, results/sample_02/01_rough/flye/assembly_graph.gfa
+    jobid: 6
+    reason: Missing output files: results/sample_02/01_rough/flye/assembly.fasta, results/sample_02/01_rough/flye/assembly_graph.gfa
+    wildcards: sample=sample_02
+    threads: 8
+    resources: tmpdir=/tmp
+Activating conda environment: .snakemake/conda/7285c2f18f34f2f8ba70926309ed1888_
+[2025-12-02 10:36:12] INFO: Starting Flye 2.9.6-b1802
+[2025-12-02 10:36:12] INFO: >>>STAGE: configure
+[2025-12-02 10:36:12] INFO: Configuring run
+Select jobs to execute...
+[2025-12-02 10:36:41] INFO: Total read length: 7403843526
+[2025-12-02 10:36:41] INFO: Reads N50/N90: 7164 / 2546
+[2025-12-02 10:36:41] INFO: Minimum overlap set to 3000
+[2025-12-02 10:36:41] INFO: >>>STAGE: assembly
+[2025-12-02 10:36:41] INFO: Assembling disjointigs
+[2025-12-02 10:36:41] INFO: Reading sequences
+[2025-12-02 10:37:02] INFO: Building minimizer index
+[2025-12-02 10:37:02] INFO: Pre-calculating index storage
+0% 10% 20% 30% 40% 50% 60% 70% 80% 90% 100% 
+[2025-12-02 10:38:12] INFO: Filling index
+0% 10% 20% 30% 40% 50% 60% 70% 80% 90% 100% 
+[2025-12-02 10:39:36] INFO: Extending reads
+[2025-12-02 10:40:41] INFO: Overlap-based coverage: 2
+[2025-12-02 10:40:41] INFO: Median overlap divergence: 0.041035
+0% 10% 20% 30% 

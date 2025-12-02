@@ -1,3 +1,5 @@
+# /scripts/generate_report.py
+
 import os
 import sys
 

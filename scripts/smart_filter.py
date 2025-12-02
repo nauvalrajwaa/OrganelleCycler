@@ -1,3 +1,5 @@
+# /scripts/smart_filter.py
+
 import sys
 import os
 import subprocess
@@ -44,6 +46,7 @@ def parse_gfa_circularity(gfa_file):
     return circular_contigs
 
 def run_minimap(query, ref, output_paf):
+    # Hapus 2> /dev/null agar log terlihat
     cmd = f"minimap2 -x asm5 -t 4 {ref} {query} > {output_paf}"
     subprocess.run(cmd, shell=True, check=False)
 
@@ -72,6 +75,7 @@ def filter_and_write_gfa(input_gfa, output_gfa, kept_ids, max_output=5):
             parts = line.strip().split('\t')
             if parts[0] == 'S':
                 seg_id = parts[1]
+                # Sequence ada di index 2
                 seq = parts[2]
                 if seg_id in kept_ids:
                     seq_lengths.append((len(seq), seg_id))
@@ -103,6 +107,7 @@ def main():
     # Input list diasumsikan: [0]=Raven, [1]=Flye
     tools = ["Raven", "Flye"]
     
+    # Header Log (Format Baru)
     all_logs = [f"MODE: {target_mode} | Tool | ID | Len | Circ | Target% | Contam% | DECISION"]
     all_blacklist = []
     
