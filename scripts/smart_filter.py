@@ -129,41 +129,35 @@ def main():
                 decision = "UNKNOWN"
                 action = "KEEP"
 
-                # 1. GOLDEN: Circular & Valid Size
+                # --- VERSI LONGGAR (LOOSE) UNTUK PENYELAMATAN DATA ---
+
+                # 1. GOLDEN (Tetap)
                 if (is_circ and valid_min <= length <= valid_max):
                     decision = f"{t_lbl} (Circular)"
                     action = "KEEP"
 
-                # 2. THE MTPT BRIDGE (Shared Sequence) -> CRITICAL!
-                # Jika sequence mirip kedua-duanya (>50%), simpan!
-                elif t_cov > 50 and c_cov > 50:
+                # 2. SHARED MTPT (Diperluas)
+                # Dulu >50%, sekarang >30% sudah kita anggap jembatan
+                elif t_cov > 30 and c_cov > 30:
                     decision = "SHARED MTPT (Bridge)"
                     action = "KEEP"
 
-                # 3. HIGH IDENTITY
-                elif t_cov > 30 and t_cov > c_cov:
-                    decision = f"{t_lbl} (High Identity)"
+                # 3. HIGH IDENTITY (Diturunkan)
+                # Dulu >30%, sekarang >10% saja (asalkan lebih besar dari contam)
+                elif t_cov > 10 and t_cov > c_cov:
+                    decision = f"{t_lbl} (Potential)"
                     action = "KEEP"
 
-                # 4. CONTAMINATION (Stricter: >10%)
-                elif c_cov > 10 and c_cov > t_cov:
+                # 4. KONTAMINASI (Dipersempit)
+                # Dulu >10%, sekarang >20% baru kita blacklist.
+                # Biarkan mito yang "agak mirip" lolos dulu, nanti Flye yang urus.
+                elif c_cov > 20 and c_cov > t_cov:
                     decision = f"{c_lbl} Contamination"
                     action = "BLACKLIST"
 
-                # 5. JUMBO JUNK (Nuclear)
-                elif is_jumbo_bad and length > 250000 and t_cov < 10:
-                    decision = "Jumbo Junk"
-                    action = "BLACKLIST"
-                
-                # 6. LOW SIGNAL NOISE
-                elif t_cov < 5 and c_cov < 5:
-                    decision = "Low Signal (Noise)"
-                    action = "BLACKLIST"
-                
-                # 7. SMALL FRAGMENT
-                elif length < 5000: # 5kb limit
-                    decision = "Small Fragment"
-                    action = "BLACKLIST"
+                # Sisanya (Low signal, dll) biarkan default (UNKNOWN -> KEEP)
+                # Hapus atau komentar bagian "Low Signal Blacklist"
+                # elif t_cov < 5 and c_cov < 5: ... (JANGAN DIAKTIFKAN)
 
                 # Logging
                 all_logs.append(f"{tool} | {cid} | {length} | {is_circ} | {t_cov:.1f} | {c_cov:.1f} | {decision} -> {action}")

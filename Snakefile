@@ -21,6 +21,11 @@ def get_max_len(wildcards):
     if config.get("target_assembly") == "MITO": return config.get("mito_max_len", 2000000)
     else: return config.get("plastome_max", 200000)
 
+# Helper untuk mengambil path GBK referensi
+def get_rescue_ref_gbk(wildcards):
+    if config.get("target_assembly") == "MITO": return config["mito_reference_gbk"]
+    else: return config["reference_gbk"]
+
 # =============================================================================
 # 3. DEFINISI TARGET AKHIR (CONDITIONAL)
 # =============================================================================
@@ -47,7 +52,9 @@ rule all:
 # =============================================================================
 
 rule fetch_plastome_ref:
-    output: config["reference_out"]
+    output: 
+        fasta = config["reference_out"],
+        gbk   = config["reference_gbk"] # <-- Output Baru
     log: "logs/universal/fetch_plastome.log"
     params:
         search_term = config["plastome_search_term"],
@@ -57,7 +64,9 @@ rule fetch_plastome_ref:
     script: "scripts/fetch_organelle_ref.py"
 
 rule fetch_mito_ref:
-    output: config["mito_reference_out"]
+    output: 
+        fasta = config["mito_reference_out"],
+        gbk   = config["mito_reference_gbk"] # <-- Output Baru
     log: "logs/universal/fetch_mito.log"
     params:
         search_term = config["mito_search_term"],
@@ -134,11 +143,10 @@ rule plot_filtered_graphs:
         flye_png  = "results/{sample}/02_blacklist/viz/flye_filtered.png"
     log: "logs/{sample}/02_plot_filtered.log"
     conda: "envs/visualization.yaml"
-    # UPDATED: Added --names --lengths --depth
     params: opts = "--height 800 --width 800 --nodewidth 15 --fontsize 20 --names --lengths --depth"
     shell:
         """
-        {
+        (
         if ! Bandage image {input.raven_gfa} {output.raven_png} {params.opts} 2>/dev/null; then
             touch {output.raven_png}
         fi
@@ -146,7 +154,7 @@ rule plot_filtered_graphs:
         if ! Bandage image {input.flye_gfa} {output.flye_png} {params.opts} 2>/dev/null; then
             touch {output.flye_png}
         fi
-        } 2> {log}
+        ) 2> {log}
         """
 
 rule generate_filter_report:
@@ -175,10 +183,19 @@ rule filter_reads_dual:
     conda: "envs/minimap2.yaml"
     shell:
         """
+        # 1. Filter Negatif (Blacklist) - Biarkan standar
         (minimap2 -ax map-ont -t {threads} {input.blacklist} {input.reads} \
         | samtools view -b -f 4 - | samtools fastq - > {output.temp_filtered}) 2> {log}
 
-        (minimap2 -ax map-ont -t {threads} {input.bait_ref} {output.temp_filtered} \
+        # 2. BAITING TARGET (RESCUE MODE / SUPER LOOSE)
+        # Parameter Penjelasan:
+        # -k12 : Gunakan k-mer pendek (default 15). Membantu nempel di daerah banyak error.
+        # -A1 -B2 : Skor match=1, mismatch=2 (Default B=4). Hukuman mismatch diperkecil.
+        # -O2 -E1 : Gap open/extension penalty diturunkan. Agar reads bolong-bolong tetap diambil.
+        # -s 40 : Minimal peak score diturunkan.
+        
+        (minimap2 -ax map-ont -k12 -A1 -B2 -O2 -E1 -s 40 -t {threads} \
+         {input.bait_ref} {output.temp_filtered} \
         | samtools view -b -F 4 - | samtools fastq - > {output.final_reads}) 2>> {log}
         """
 
@@ -212,8 +229,10 @@ rule assemble_raven_final:
     shell:
         "raven --threads {threads} --graphical-fragment-assembly {output.gfa} {input} > {output.fasta} 2> {log}"
 
+# Assembler 3: Canu (FAIL-SAFE VERSION)
 rule assemble_canu:
-    input: "results/{sample}/03_filtered_reads/recruited_reads.fastq"
+    input:
+        "results/{sample}/03_filtered_reads/recruited_reads.fastq"
     output:
         fasta = "results/{sample}/04_assemblies/canu/assembly.contigs.fasta",
         gfa   = "results/{sample}/04_assemblies/canu/assembly.contigs.gfa"
@@ -225,18 +244,36 @@ rule assemble_canu:
     conda: "envs/canu.yaml"
     shell:
         """
-        canu -p assembly -d {params.dir} genomeSize={params.size} \
+        # 1. Jalankan Canu
+        # Gunakan '|| true' agar jika Canu error, script bash tidak langsung mati
+        if canu -p assembly -d {params.dir} genomeSize={params.size} \
              -nanopore {input} maxThreads={threads} useGrid=false \
-             stopOnLowCoverage=5 minInputCoverage=5 > {log} 2>&1
+             stopOnLowCoverage=5 minInputCoverage=5 > {log} 2>&1; then
+            
+            # --- JIKA CANU SUKSES ---
+            
+            # Cek apakah output FASTA terbentuk dan ada isinya
+            if [ -s {output.fasta} ]; then
+                # Cek GFA. Jika tidak ada, buat manual dari FASTA
+                if [ ! -f {output.gfa} ]; then
+                    echo "[INFO] Generating GFA from FASTA..." >> {log}
+                    awk '/^>/ {{printf("\\nS\\t%s\\t",substr($1,2))}} !/^>/ {{printf("%s",$0)}} END {{printf("\\n")}}' {output.fasta} | sed '/^$/d' > {output.gfa}
+                fi
+            else
+                # Canu sukses run tapi tidak menghasilkan contig (kosong)
+                echo "[WARNING] Canu finished but produced no contigs." >> {log}
+                touch {output.fasta} {output.gfa}
+            fi
 
-        if [ ! -f {output.gfa} ]; then
-            echo "[INFO] Canu did not produce GFA. Generating one from FASTA..." >> {log}
-            awk '/^>/ {{printf("\\nS\\t%s\\t",substr($1,2))}} !/^>/ {{printf("%s",$0)}} END {{printf("\\n")}}' {output.fasta} | sed '/^$/d' > {output.gfa}
+        else
+            # --- JIKA CANU GAGAL/CRASH ---
+            echo "[WARNING] Canu crashed or failed. Creating dummy files to continue pipeline." >> {log}
+            touch {output.fasta} {output.gfa}
         fi
         """
 
 # =============================================================================
-# PHASE 5: EQUALIZATION (POLISHING)
+# PHASE 5: EQUALIZATION (POLISHING) - ROBUST FAIL-SAFE VERSION
 # =============================================================================
 
 rule polish_raven:
@@ -249,8 +286,16 @@ rule polish_raven:
     conda: "envs/minipolish.yaml"
     shell:
         """
-        minipolish -t {threads} {input.reads} {input.draft} 2> {log} \
-        | awk '/^S/{{print ">"$2"\\n"$3}}' | fold > {output}
+        # 1. Coba jalankan Minipolish ke file temporary
+        if minipolish -t {threads} {input.reads} {input.draft} > {output}.temp_gfa 2> {log}; then
+            # JIKA SUKSES: Convert GFA Polished ke FASTA
+            awk '/^S/{{print ">"$2"\\n"$3}}' {output}.temp_gfa | fold > {output}
+            rm {output}.temp_gfa
+        else
+            # JIKA GAGAL: Gunakan Draft Asli (Unpolished) sebagai fallback
+            echo "[WARNING] Minipolish failed. Using unpolished draft as fallback." >> {log}
+            awk '/^S/{{print ">"$2"\\n"$3}}' {input.draft} | fold > {output}
+        fi
         """
 
 rule polish_canu:
@@ -263,8 +308,14 @@ rule polish_canu:
     conda: "envs/minipolish.yaml"
     shell:
         """
-        minipolish -t {threads} {input.reads} {input.draft} 2> {log} \
-        | awk '/^S/{{print ">"$2"\\n"$3}}' | fold > {output}
+        # Logic yang sama untuk Canu
+        if minipolish -t {threads} {input.reads} {input.draft} > {output}.temp_gfa 2> {log}; then
+            awk '/^S/{{print ">"$2"\\n"$3}}' {output}.temp_gfa | fold > {output}
+            rm {output}.temp_gfa
+        else
+            echo "[WARNING] Minipolish failed. Using unpolished draft as fallback." >> {log}
+            awk '/^S/{{print ">"$2"\\n"$3}}' {input.draft} | fold > {output}
+        fi
         """
 
 # =============================================================================
@@ -298,32 +349,35 @@ rule plot_final_graphs:
         canu_png  = "results/{sample}/07_best_candidate/viz/canu_final.png"
     log: "logs/{sample}/07_plot_final.log"
     conda: "envs/visualization.yaml"
-    # UPDATED: Added --names --lengths --depth
     params: opts = "--height 800 --width 800 --nodewidth 20 --fontsize 24 --names --lengths --depth"
     shell:
         """
-        {
+        (
         if ! Bandage image {input.flye_gfa} {output.flye_png} {params.opts} 2>/dev/null; then touch {output.flye_png}; fi
         if ! Bandage image {input.raven_gfa} {output.raven_png} {params.opts} 2>/dev/null; then touch {output.raven_png}; fi
         if ! Bandage image {input.canu_gfa} {output.canu_png} {params.opts} 2>/dev/null; then touch {output.canu_png}; fi
-        } 2> {log}
+        ) 2> {log}
         """
+
+# Update bagian ini di Snakefile Anda:
 
 rule generate_final_report:
     input:
         report = "results/{sample}/07_best_candidate/selection_report.txt",
         plots  = ["results/{sample}/07_best_candidate/viz/flye_final.png",
                   "results/{sample}/07_best_candidate/viz/raven_final.png",
-                  "results/{sample}/07_best_candidate/viz/canu_final.png"]
+                  "results/{sample}/07_best_candidate/viz/canu_final.png"],
+        # INPUT BARU: QC PLOTS
+        dotplot = "results/{sample}/07_best_candidate/qc/dotplot.png",
+        covplot = "results/{sample}/07_best_candidate/qc/coverage_plot.png"
     output:
         html   = "results/{sample}/07_best_candidate/FINAL_ASSEMBLY_REPORT.html"
     script: "scripts/generate_final_report.py"
     
 # =============================================================================
-# PHASE 8: THE RESCUE (CIRCULARIZATION)
+# PHASE 8: THE RESCUE (CIRCULARIZATION) - HYBRID INSTALL
 # =============================================================================
 
-# Helper: Tentukan referensi (sama seperti sebelumnya)
 def get_rescue_ref(wildcards):
     if config.get("target_assembly") == "MITO": return config["mito_reference_out"]
     else: return config["reference_out"]
@@ -331,40 +385,49 @@ def get_rescue_ref(wildcards):
 rule run_rescue_mitohifi:
     input:
         contigs = "results/{sample}/07_best_candidate/best_assembly.fasta",
-        ref     = get_rescue_ref
+        ref     = get_rescue_ref,     # FASTA (-f)
+        ref_gb  = get_rescue_ref_gbk  # GBK (-g) <-- INPUT BARU
     output:
-        # MitoHiFi menghasilkan banyak file, kita ambil final fasta-nya
-        final = "results/{sample}/08_rescue/final_circularized.fasta"
+        final = "results/{sample}/08_rescue/final_circularized.fasta",
+        gbk   = "results/{sample}/08_rescue/final_mitogenome.gb"
     params:
         outdir = "results/{sample}/08_rescue",
-        # GenCode 1 (Standard) atau 11 (Bacterial/Plant Plastid). Untuk Plastid pakai 11.
-        gencode = "11" 
+        tool_dir = "resources/tools",
+        organism_type = "plant",
+        perc_match    = "80",
+        # Genetic Code 11 (Bacterial/Plant Plastid)
+        # Jika Mito, ganti jadi 1 (Standard)
+        gencode       = "11" 
     threads: config["threads"]
-    # Kita butuh env baru untuk MitoHiFi
-    conda: "envs/mitohifi.yaml" 
+    conda: "envs/mitohifi.yaml"
     shell:
         """
-        # Hapus folder output lama jika ada (MitoHiFi suka error kalau folder ada)
+        # Clone MitoHiFi (sama seperti sebelumnya)
+        if [ ! -d "{params.tool_dir}/MitoHiFi" ]; then
+            mkdir -p {params.tool_dir}
+            git clone https://github.com/marcelauliano/MitoHiFi.git {params.tool_dir}/MitoHiFi
+        fi
+        
         rm -rf {params.outdir}
         
-        # Jalankan MitoHiFi
-        # -c: contigs input
-        # -f: referensi (wajib dekat spesiesnya)
-        # -g: genetic code (11 untuk plastid)
-        # -t: threads
-        # --circular-size: Estimasi ukuran (opsional, dia bisa detect sendiri)
+        # Jalankan dengan parameter lengkap (-g dan -o)
+        python {params.tool_dir}/MitoHiFi/src/mitohifi.py \
+            -c {input.contigs} \
+            -f {input.ref} \
+            -g {input.ref_gb} \
+            -a {params.organism_type} \
+            -p {params.perc_match} \
+            -o {params.gencode} \
+            -t {threads} \
+            -o {params.outdir} 
         
-        mitohifi.py -c {input.contigs} -f {input.ref} -g {params.gencode} \
-                    -t {threads} -o {params.outdir} 
-        
-        # Rename outputnya agar sesuai target Snakemake
-        # MitoHiFi output biasanya: {outdir}/final_mitogenome.fasta
-        
+        # Finalize output (sama seperti sebelumnya)
         if [ -f {params.outdir}/final_mitogenome.fasta ]; then
             cp {params.outdir}/final_mitogenome.fasta {output.final}
+            cp {params.outdir}/final_mitogenome.gb {output.gbk}
         else
-            # Jika gagal circularize, copy saja input aslinya (Linear) sebagai fallback
-            echo "[WARNING] Rescue failed. Copying linear contigs."
+            echo "[WARNING] Rescue failed. Copying linear input."
             cp {input.contigs} {output.final}
+            touch {output.gbk}
         fi
         """

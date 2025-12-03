@@ -29,20 +29,26 @@ query_taxa:
 # --- PARAMETER PENCARIAN NCBI ---
 # Plastome
 plastome_search_term: "chloroplast[Title] OR plastid[Title]"
-plastome_min_len: 100000
-plastome_max_len: 250000
-plastome_min: 100000      # Range validasi filter
-plastome_max: 200000
+plastome_min_len: 80000
+plastome_max_len: 180000
 
 # Mitochondria
-mito_search_term: "mitochondrion[Title] OR mitochondrial[Title]"
-mito_min_len: 200000
-mito_max_len: 10000000
+mito_search_term: "mitochondrion[Title] OR mitochondrial[Title] OR mitochondria[Title]"
+mito_min_len: 150000
+mito_max_len: 400000
+
 blacklist_min_size: 200000 # Batas ukuran contig sampah
 
 # --- RESCUE STEP ---
 # Set "YES" jika ingin mencoba sirkularisasi otomatis pada hasil linear
 run_circularization_rescue: "YES"
 
+# Output References
+reference_out: "resources/ref_tebu_plastome.fasta"
+reference_gbk: "resources/ref_tebu_plastome.gb"     # <-- Tambahkan ini
+
+mito_reference_out: "resources/ref_tebu_mito.fasta"
+mito_reference_gbk: "resources/ref_tebu_mito.gb"    # <-- Tambahkan ini
+
 # --- TOOLS ---
-medaka_model: "r941_min_sup_g507"
+medaka_model: "r10.4.1_e8.2_400bps_sup@v5.2.0"
