@@ -1,54 +1,74 @@
+# =============================================================================
+# CONFIGURATION FILE FOR ORGANELLE ASSEMBLY PIPELINE (RESCUE MODE)
+# =============================================================================
+
 # --- SYSTEM SETTINGS ---
 threads: 48
-email: "nauvalrajwaa@gmail.com"  # Wajib diisi
-samples_file: "config/samples.tsv"
-
-# --- OUTPUT PATHS ---
-reference_out: "resources/ref_tebu_plastome.fasta"
-mito_reference_out: "resources/ref_tebu_mito.fasta"
+email: "nauvalrajwaa@gmail.com"  # Wajib untuk download NCBI
+samples_file: "config/samples.tsv" # TSV ini nanti merujuk ke hasil output Rule 0
 
 # --- ASSEMBLY CONTROL ---
-# Pilihan: "PLASTOME", "MITO", atau "BOTH"
+# Target Utama: "PLASTOME", "MITO", atau "BOTH"
+# Karena kita mau merakit Plastome Tebu, set PLASTOME.
 target_assembly: "PLASTOME" 
-# Pilihan: sesuaikan dengan genome size target
-target_est_size: "150k" # Estimasi untuk assembler
 
-# --- TARGET ORGANISME (DINAMIS) ---
-# Ubah list ini sesuai sampel Anda (Misal ganti ke Oryza sativa untuk padi)
+# Estimasi ukuran untuk parameter assembler (Flye/Canu)
+target_est_size: "150k" 
+
+# Output hasil saringan (File ini yang nanti akan dibaca oleh rule selanjutnya)
+filtered_fastq_out: "resources/reads_organelle_concentrated.fastq"
+
+# --- REFERENCE FILE PATHS (OUTPUT FETCHING) ---
+# Path ini digunakan untuk menyimpan hasil download referensi Primary (Tebu)
+# Penting untuk Assessment, Smart Filter, dan MitoHiFi
+
+# Output References (SPECIFIC - Untuk Smart Filter & MitoHiFi)
+reference_out: "resources/ref_tebu_plastome.fasta"
+reference_gbk: "resources/ref_tebu_plastome.gb"
+mito_reference_out: "resources/ref_tebu_mito.fasta"
+mito_reference_gbk: "resources/ref_tebu_mito.gb"
+
+# Output References (EXPANDED - Untuk Master Bait)
+reference_expanded_out: "resources/ref_tebu_plastome_expanded.fasta" 
+
+# [Image of circular DNA graph representation]
+
+reference_expanded_gbk: "resources/ref_tebu_plastome_expanded.gb" 
+mito_reference_expanded_out: "resources/ref_tebu_mito_expanded.fasta"
+mito_reference_expanded_gbk: "resources/ref_tebu_mito_expanded.gb"
+
+# 3. Master Bait (Super Bait)
+# File gabungan Plastome + Mito yang dibuat otomatis oleh Rule 0
+super_bait_path: "resources/MASTER_BAIT_combined.fasta"
+
+# --- PARAMETER PENCARIAN NCBI (FETCHER) ---
+# Query Taxa: Gunakan Primary saja agar referensi tajam (Tebu Only)
+# Kerabat lain sudah ditangani oleh Minimap2 parameter 'loose'
 query_taxa:
   primary:
     - "Saccharum officinarum"
     - "Saccharum spontaneum"
-  secondary:
-    - "Miscanthus"
-    - "Sorghum"
-    - "Erianthus"
-  outgroup:
-    - "Zea mays"
+  secondary: [] 
+  outgroup: []
 
-# --- PARAMETER PENCARIAN NCBI ---
-# Plastome
+# Parameter Search Plastome
 plastome_search_term: "chloroplast[Title] OR plastid[Title]"
-plastome_min_len: 80000
+# Range dilonggarkan (80k-180k) agar penilaian Flexible/Ranking berfungsi
+plastome_min_len: 80000 
 plastome_max_len: 180000
+# Range untuk penilaian Assessment (Zona Aman)
+plastome_min: 80000
+plastome_max: 180000
 
-# Mitochondria
+# Parameter Search Mitochondria
 mito_search_term: "mitochondrion[Title] OR mitochondrial[Title] OR mitochondria[Title]"
 mito_min_len: 150000
-mito_max_len: 400000
+mito_max_len: 600000 # Mito tebu bisa besar/multipartite
 
-blacklist_min_size: 200000 # Batas ukuran contig sampah
-
-# --- RESCUE STEP ---
-# Set "YES" jika ingin mencoba sirkularisasi otomatis pada hasil linear
+# --- RESCUE STEP (MitoHiFi) ---
+# Set "YES" untuk mengaktifkan sirkularisasi otomatis
 run_circularization_rescue: "YES"
 
-# Output References
-reference_out: "resources/ref_tebu_plastome.fasta"
-reference_gbk: "resources/ref_tebu_plastome.gb"     # <-- Tambahkan ini
-
-mito_reference_out: "resources/ref_tebu_mito.fasta"
-mito_reference_gbk: "resources/ref_tebu_mito.gb"    # <-- Tambahkan ini
-
 # --- TOOLS ---
+# Model Medaka (Opsional, jika nanti ingin polishing tambahan)
 medaka_model: "r10.4.1_e8.2_400bps_sup@v5.2.0"
