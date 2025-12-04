@@ -15,8 +15,9 @@ rule fetch_plastome_expanded:
         min_len = config["plastome_min_len"],
         max_len = config["plastome_max_len"],
         expand_lineage = True  # <--- SAKLAR ON
-    conda: "../envs/blast_biopython.yaml" # Gunakan .. jika file env ada di root/envs
-    script: "../scripts/fetch_organelle_ref.py" # Gunakan .. jika script ada di root/scripts
+    resources: ncbi_connection=1  # <--- UPDATE: Antri satu per satu
+    conda: "../envs/blast_biopython.yaml" 
+    script: "../scripts/fetch_organelle_ref.py" 
 
 # 1.B. Fetch Mito EXPANDED (Untuk Master Bait) -> Saklar ON
 rule fetch_mito_expanded:
@@ -28,6 +29,7 @@ rule fetch_mito_expanded:
         min_len = config["mito_min_len"],
         max_len = config["mito_max_len"],
         expand_lineage = True  # <--- SAKLAR ON
+    resources: ncbi_connection=1  # <--- UPDATE: Antri satu per satu
     conda: "../envs/blast_biopython.yaml"
     script: "../scripts/fetch_organelle_ref.py"
 
@@ -41,6 +43,7 @@ rule fetch_plastome_specific:
         min_len = config["plastome_min_len"],
         max_len = config["plastome_max_len"],
         expand_lineage = False # <--- SAKLAR OFF
+    resources: ncbi_connection=1  # <--- UPDATE: Antri satu per satu
     conda: "../envs/blast_biopython.yaml"
     script: "../scripts/fetch_organelle_ref.py"
 
@@ -54,6 +57,7 @@ rule fetch_mito_specific:
         min_len = config["mito_min_len"],
         max_len = config["mito_max_len"],
         expand_lineage = False # <--- SAKLAR OFF
+    resources: ncbi_connection=1  # <--- UPDATE: Antri satu per satu
     conda: "../envs/blast_biopython.yaml"
     script: "../scripts/fetch_organelle_ref.py"
 
