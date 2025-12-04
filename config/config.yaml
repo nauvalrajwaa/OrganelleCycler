@@ -28,12 +28,9 @@ reference_gbk: "resources/ref_tebu_plastome.gb"
 mito_reference_out: "resources/ref_tebu_mito.fasta"
 mito_reference_gbk: "resources/ref_tebu_mito.gb"
 
-# Output References (EXPANDED - Untuk Master Bait)
-reference_expanded_out: "resources/ref_tebu_plastome_expanded.fasta" 
-
-# [Image of circular DNA graph representation]
-
-reference_expanded_gbk: "resources/ref_tebu_plastome_expanded.gb" 
+# Output References (EXPANDED - Untuk Master Bait) <-- PASTIKAN INI ADA
+reference_expanded_out: "resources/ref_tebu_plastome_expanded.fasta"
+reference_expanded_gbk: "resources/ref_tebu_plastome_expanded.gb"
 mito_reference_expanded_out: "resources/ref_tebu_mito_expanded.fasta"
 mito_reference_expanded_gbk: "resources/ref_tebu_mito_expanded.gb"
 
