@@ -13,8 +13,8 @@ rule select_best_candidate:
     params:
         min_len = get_min_len,
         max_len = get_max_len
-    conda: "envs/blast_biopython.yaml"
-    script: "scripts/assess_assemblies.py"
+    conda: "../envs/blast_biopython.yaml"
+    script: "../scripts/assess_assemblies.py"
 
 rule plot_final_graphs:
     input:
@@ -26,7 +26,7 @@ rule plot_final_graphs:
         raven_png = "results/{sample}/07_best_candidate/viz/raven_final.png",
         canu_png  = "results/{sample}/07_best_candidate/viz/canu_final.png"
     log: "logs/{sample}/07_plot_final.log"
-    conda: "envs/visualization.yaml"
+    conda: "../envs/visualization.yaml"
     params: 
         opts = "--height 1000 --width 1000 --nodewidth 20 --fontsize 24 --names --lengths --colour depth"
     shell:
@@ -46,7 +46,7 @@ rule plot_dotplot:
         plot = "results/{sample}/07_best_candidate/qc/dotplot.png"
     params:
         prefix = "results/{sample}/07_best_candidate/qc/nucmer"
-    conda: "envs/qc_plot.yaml"
+    conda: "../envs/qc_plot.yaml"
     shell:
         """
         if [ -s {input.query} ]; then
@@ -67,8 +67,8 @@ rule plot_coverage:
         depth = "results/{sample}/07_best_candidate/qc/coverage.txt",
         plot  = "results/{sample}/07_best_candidate/qc/coverage_plot.png"
     threads: config["threads"]
-    conda: "envs/qc_plot.yaml"
-    script: "scripts/plot_coverage.py"
+    conda: "../envs/qc_plot.yaml"
+    script: "../scripts/plot_coverage.py"
 
 rule generate_final_report:
     input:
@@ -80,4 +80,4 @@ rule generate_final_report:
         covplot = "results/{sample}/07_best_candidate/qc/coverage_plot.png"
     output:
         html   = "results/{sample}/07_best_candidate/FINAL_ASSEMBLY_REPORT.html"
-    script: "scripts/generate_final_report.py"
+    script: "../scripts/generate_final_report.py"

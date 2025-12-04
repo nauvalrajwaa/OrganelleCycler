@@ -9,7 +9,7 @@ rule rough_assembly_flye:
     log: "logs/{sample}/01_rough_flye.log"
     params: outdir = "results/{sample}/01_rough/flye"
     threads: config["threads"]
-    conda: "envs/flye.yaml"
+    conda: "../envs/flye.yaml"
     shell: "flye --nano-hq {input} --out-dir {params.outdir} --threads {threads} --iterations 0 2> {log}"
 
 rule rough_assembly_raven:
@@ -20,7 +20,7 @@ rule rough_assembly_raven:
         gfa   = "results/{sample}/01_rough/raven.gfa"
     log: "logs/{sample}/01_rough_raven.log"
     threads: config["threads"]
-    conda: "envs/raven.yaml"
+    conda: "../envs/raven.yaml"
     shell: "raven --threads {threads} --graphical-fragment-assembly {output.gfa} {input} > {output.fasta} 2> {log}"
 
 rule plot_rough_graphs:
@@ -31,7 +31,7 @@ rule plot_rough_graphs:
         raven_png = "results/{sample}/01_rough/viz/raven_graph.png",
         flye_png  = "results/{sample}/01_rough/viz/flye_graph.png"
     log: "logs/{sample}/01_plot_rough.log"
-    conda: "envs/visualization.yaml"
+    conda: "../envs/visualization.yaml"
     params: 
         opts = "--height 1000 --width 1000 --nodewidth 15 --fontsize 20 --names --lengths --colour depth"
     shell:
@@ -56,8 +56,8 @@ rule create_smart_blacklist:
         filtered_gfas = ["results/{sample}/02_blacklist/raven_filtered.gfa",
                          "results/{sample}/02_blacklist/flye_filtered.gfa"]
     log: "logs/{sample}/02_smart_filter.log"
-    conda: "envs/blast_biopython.yaml"
-    script: "scripts/smart_filter.py"
+    conda: "../envs/blast_biopython.yaml"
+    script: "../scripts/smart_filter.py"
 
 rule plot_filtered_graphs:
     input:
@@ -67,7 +67,7 @@ rule plot_filtered_graphs:
         raven_png = "results/{sample}/02_blacklist/viz/raven_filtered.png",
         flye_png  = "results/{sample}/02_blacklist/viz/flye_filtered.png"
     log: "logs/{sample}/02_plot_filtered.log"
-    conda: "envs/visualization.yaml"
+    conda: "../envs/visualization.yaml"
     params: opts = "--height 800 --width 800 --nodewidth 15 --fontsize 20 --names --lengths --colour depth"
     shell:
         """
@@ -84,4 +84,4 @@ rule generate_filter_report:
                  "results/{sample}/02_blacklist/viz/flye_filtered.png"]
     output:
         html  = "results/{sample}/02_blacklist/filtering_report.html"
-    script: "scripts/generate_report.py"
+    script: "../scripts/generate_report.py"

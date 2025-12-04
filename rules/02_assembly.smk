@@ -10,7 +10,7 @@ rule filter_reads_dual:
         final_reads   = "results/{sample}/03_filtered_reads/recruited_reads.fastq"
     log: "logs/{sample}/03_filter_reads.log"
     threads: config["threads"]
-    conda: "envs/minimap2.yaml"
+    conda: "../envs/minimap2.yaml"
     shell:
         """
         # 1. Filter Negatif (Blacklist - Mito)
@@ -34,7 +34,7 @@ rule assemble_flye:
     params:
         size = config["target_est_size"],
         outdir = "results/{sample}/04_assemblies/flye"
-    conda: "envs/flye.yaml"
+    conda: "../envs/flye.yaml"
     shell:
         "flye --nano-hq {input} --out-dir {params.outdir} --threads {threads} --genome-size {params.size} --meta --iterations 2 2> {log}"
 
@@ -45,7 +45,7 @@ rule assemble_raven_final:
         gfa   = "results/{sample}/04_assemblies/raven/assembly_graph.gfa"
     log: "logs/{sample}/04_raven.log"
     threads: config["threads"]
-    conda: "envs/raven.yaml"
+    conda: "../envs/raven.yaml"
     shell:
         "raven --threads {threads} --graphical-fragment-assembly {output.gfa} {input} > {output.fasta} 2> {log}"
 
@@ -59,7 +59,7 @@ rule assemble_canu:
     params:
         size = config["target_est_size"],
         dir = "results/{sample}/04_assemblies/canu"
-    conda: "envs/canu.yaml"
+    conda: "../envs/canu.yaml"
     shell:
         """
         if canu -p assembly -d {params.dir} genomeSize={params.size} \
@@ -84,7 +84,7 @@ rule polish_raven:
     output: "results/{sample}/05_polished/raven_polished.fasta"
     log: "logs/{sample}/05_polish_raven.log"
     threads: config["threads"]
-    conda: "envs/minipolish.yaml"
+    conda: "../envs/minipolish.yaml"
     shell:
         """
         if minipolish -t {threads} {input.reads} {input.draft} > {output}.temp_gfa 2> {log}; then
@@ -102,7 +102,7 @@ rule polish_canu:
     output: "results/{sample}/05_polished/canu_polished.fasta"
     log: "logs/{sample}/05_polish_canu.log"
     threads: config["threads"]
-    conda: "envs/minipolish.yaml"
+    conda: "../envs/minipolish.yaml"
     shell:
         """
         if minipolish -t {threads} {input.reads} {input.draft} > {output}.temp_gfa 2> {log}; then
