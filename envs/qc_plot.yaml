@@ -1,0 +1,13 @@
+name: qc_plot
+channels:
+  - bioconda
+  - conda-forge
+  - defaults
+dependencies:
+  - mummer          # Untuk nucmer & mummerplot (Dotplot)
+  - gnuplot         # Wajib ada agar mummerplot bisa bikin PNG
+  - samtools        # Untuk proses BAM coverage
+  - bedtools        # Untuk menghitung genome coverage
+  - python=3.9
+  - matplotlib      # Untuk script plot_coverage.py (jika pakai python plotting)
+  - pandas
