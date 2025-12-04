@@ -1,5 +1,5 @@
 # PHASE 8: THE RESCUE (CIRCULARIZATION)
-# Menggunakan Docker Container resmi MitoHiFi untuk stabilitas maksimal
+# Menggunakan Docker Container resmi MitoHiFi
 
 rule run_rescue_mitohifi:
     input:
@@ -7,44 +7,35 @@ rule run_rescue_mitohifi:
         ref_fasta = get_rescue_ref,     
         ref_gb    = get_rescue_ref_gbk 
     output:
-        final_fasta = "results/{sample}/08_rescue/final_mitogenome.fasta",
+        # PERBAIKAN: Kembalikan nama ke 'final_circularized.fasta' agar cocok dengan Snakefile
+        final_fasta = "results/{sample}/08_rescue/final_circularized.fasta",
         final_gbk   = "results/{sample}/08_rescue/final_mitogenome.gb"
     params:
-        # MitoHiFi membuat folder berdasarkan parameter '-c' (input fasta).
-        # Kita perlu trick sedikit agar outputnya masuk ke folder yang kita mau.
         out_dir_base = "results/{sample}/08_rescue",
-        # Genetic Code: 11 (Plastid/Bacterial), 1 (Mito Standard)
-        gcode   = "11" if config["target_assembly"] == "PLASTOME" else "1",
-        organism = "plant",
-        perc_match = "80"
+        gcode        = "11" if config["target_assembly"] == "PLASTOME" else "1",
+        organism     = "plant",
+        perc_match   = "80"
     threads: config["threads"]
     
-    # --- DOCKER CONTAINER DIRECTIVE ---
-    # Snakemake akan otomatis pull image ini dan menjalankannya via Apptainer/Singularity
+    # Gunakan Docker via Singularity/Apptainer
     container: "docker://ghcr.io/marcelauliano/mitohifi:master"
     
     shell:
         """
-        # 1. Bersihkan output folder lama agar bersih
+        # 1. Persiapan Folder
         rm -rf {params.out_dir_base}
         mkdir -p {params.out_dir_base}
 
-        # 2. EKSEKUSI MITOHIFI (DOCKERIZED)
-        # Catatan: Di dalam container, script 'mitohifi.py' sudah ada di PATH global.
-        # Kita tidak perlu path absolut resource/tools lagi.
-        
-        # Kita masuk ke folder output dulu agar MitoHiFi menulis di sana
+        # 2. Pindah ke folder kerja & Copy Input
+        # (Wajib copy karena Docker kadang susah baca path relative ../../)
         cd {params.out_dir_base}
-
-        # Perhatian: MitoHiFi butuh path input absolut atau relative dari tempat script dijalankan.
-        # Karena kita 'cd', kita harus menyesuaikan path input (naik 3 level: ../../../)
-        # Atau lebih aman pakai path absolut snakemake: {input.contigs} (biasanya relative dari root).
-        # Trik paling aman: Copy input ke folder kerja saat ini.
         
         cp ../../../{input.contigs} ./input_contigs.fasta
         cp ../../../{input.ref_fasta} ./input_ref.fasta
         cp ../../../{input.ref_gb} ./input_ref.gb
 
+        # 3. Jalankan MitoHiFi
+        # Output bawaan MitoHiFi selalu bernama: final_mitogenome.fasta
         mitohifi.py \
             -c input_contigs.fasta \
             -f input_ref.fasta \
@@ -55,19 +46,19 @@ rule run_rescue_mitohifi:
             -p {params.perc_match} \
             --debug
         
-        # 3. Rename/Cleanup Output agar sesuai target Snakemake
-        # MitoHiFi biasanya menghasilkan output dengan nama: final_mitogenome.fasta
+        # 4. Rename Hasil ke Target Snakemake
+        # Snakemake minta 'final_circularized.fasta', MitoHiFi kasih 'final_mitogenome.fasta'
         
-        # Cek apakah sukses
         if [ -f final_mitogenome.fasta ]; then
             echo "[INFO] MitoHiFi Success."
-            # Tidak perlu cp karena kita sudah di folder tujuan, file sudah bernama final_mitogenome.fasta
+            mv final_mitogenome.fasta ../../../{output.final_fasta}
+            mv final_mitogenome.gb ../../../{output.final_gbk}
         else
-            echo "[WARNING] MitoHiFi Failed to circularize. Fallback to linear input."
-            cp input_contigs.fasta final_mitogenome.fasta
-            touch final_mitogenome.gb
+            echo "[WARNING] MitoHiFi Failed. Fallback to linear input."
+            cp input_contigs.fasta ../../../{output.final_fasta}
+            touch ../../../{output.final_gbk}
         fi
         
-        # Hapus file temporary copy tadi
+        # Cleanup file temporary
         rm input_contigs.fasta input_ref.fasta input_ref.gb
         """
