@@ -2,7 +2,6 @@ name: qc_plot
 channels:
   - bioconda
   - conda-forge
-  - defaults
 dependencies:
   - mummer          # Untuk nucmer & mummerplot (Dotplot)
   - gnuplot         # Wajib ada agar mummerplot bisa bikin PNG
@@ -11,3 +10,7 @@ dependencies:
   - python=3.9
   - matplotlib      # Untuk script plot_coverage.py (jika pakai python plotting)
   - pandas
+  - libtiff
+  - squashfuse
+  - gocryptfs
+  - libfuse
