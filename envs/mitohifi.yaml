@@ -2,7 +2,6 @@ name: mitohifi
 channels:
   - bioconda
   - conda-forge
-  - defaults
 dependencies:
   # --- CORE REQUIREMENTS (STRICT) ---
   - python=3.7  # Wajib 3.7 sesuai docs
