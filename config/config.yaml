@@ -62,9 +62,12 @@ mito_search_term: "mitochondrion[Title] OR mitochondrial[Title] OR mitochondria[
 mito_min_len: 150000
 mito_max_len: 600000 # Mito tebu bisa besar/multipartite
 
-# --- RESCUE STEP (MitoHiFi) ---
-# Set "YES" untuk mengaktifkan sirkularisasi otomatis
+# --- RESCUE CONFIGURATION ---
 run_circularization_rescue: "YES"
+# List assembler yang mau dijalankan di MitoHiFi
+loop_mitohifi: "flye, raven, canu" 
+# Nama spesies untuk filtering referensi cerdas
+species_name: "Saccharum officinarum"
 
 # --- TOOLS ---
 # Model Medaka (Opsional, jika nanti ingin polishing tambahan)

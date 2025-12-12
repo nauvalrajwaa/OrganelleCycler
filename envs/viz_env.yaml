@@ -1,0 +1,12 @@
+name: viz_env
+channels:
+  - conda-forge  # Wajib paling atas untuk library Python modern
+  - bioconda     # Untuk BLAST
+  - defaults
+dependencies:
+  - python=3.9
+  - biopython>=1.79
+  - pandas
+  - matplotlib
+  - seaborn
+  - blast        # Script python Anda memanggil blastn via subprocess

@@ -1,7 +1,9 @@
-name: minimap2_env
+name: minimap2
 channels:
-  - bioconda
   - conda-forge
+  - bioconda
+  - defaults
 dependencies:
-  - minimap2
-  - samtools
+  - minimap2>=2.24
+  - samtools>=1.17  # Versi 1.17+ sudah menggunakan libncurses terbaru
+  - ncurses         # Memaksa install ncurses di dalam env agar mandiri

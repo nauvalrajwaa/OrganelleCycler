@@ -1,2 +1,2 @@
 sample_id	reads_path
-sample_03	/home/prom/data/0.RAW/WGS/WGS/BL_tebu/20251128_1448_1B_PBC43447_0481364b/out_filter/porechop/sub2_BL_tebu_merged_raw_clean.fastq
+sample_01	/data/0.RAW/WGS/87-3/20251205_1519_1G_PBC43447_76e317f6/fastq_pass/87_3_clean.fastq
