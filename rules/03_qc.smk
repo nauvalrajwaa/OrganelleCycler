@@ -11,8 +11,8 @@ rule select_best_candidate:
         raven = "results/{sample}/05_final_assembly/raven_polished.fasta",
         ref   = config["target_ref"]
     output:
-        best   = "results/{sample}/07_best_candidate/best_assembly.fasta",
-        report = "results/{sample}/07_best_candidate/selection_metric.txt"
+        best   = "results/{sample}/07_best_candidate/best_candidate.fasta",
+        report = "results/{sample}/07_best_candidate/selection_report.txt"
     log: "logs/{sample}/06_selection.log"
     params:
         # Mengambil range ukuran yang diharapkan dari config (misal: 150000 +- 20%)
@@ -125,7 +125,7 @@ rule plot_coverage:
 # --- 6. FINAL REPORT ---
 rule generate_final_report:
     input:
-        sel_metric = "results/{sample}/07_best_candidate/selection_metric.txt",
+        sel_report = "results/{sample}/07_best_candidate/selection_report.txt",
         quast_txt  = "results/{sample}/07_best_candidate/quast/report.txt",
         flye_img   = "results/{sample}/07_best_candidate/viz/flye_graph.png",
         raven_img  = "results/{sample}/07_best_candidate/viz/raven_graph.png",
