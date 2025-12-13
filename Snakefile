@@ -62,8 +62,12 @@ config["blacklist_ref"] = blacklist_ref
 # Rule QC mencari 'target_est_size', kita ambil nilainya dari config 'recruitment'
 config["target_est_size"] = config["recruitment"]["est_genome_size"]
 
+# [FIX 2] Jembatan untuk 04_rescue.smk (MitoHiFi butuh 'ref_gb')
+config["ref_gb"] = target_gbk  # <--- PENAMBAHAN BARU
+
 # Debug Info
 print(f"[INFO] Target Ref      : {target_ref}")
+print(f"[INFO] Target GBK      : {target_gbk}")
 print(f"[INFO] Blacklist Ref   : {blacklist_ref}")
 print(f"[INFO] Target Size (bp): {config['target_est_size']}")
 print("-" * 50)
