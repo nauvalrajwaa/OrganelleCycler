@@ -4,94 +4,124 @@
 # =============================================================================
 
 # --- BAGIAN 1: FETCHING REFERENSI (4 Rules) ---
+# Tujuannya: Mengisi "Gudang" (Storage Paths) yang didefinisikan di config.
+# Kita butuh versi EXPANDED (untuk Pukat Harimau) dan SPECIFIC (untuk Target/Blacklist).
 
-# 1.A. Fetch Plastome EXPANDED (Untuk Master Bait) -> Saklar ON
+# 1.A. Fetch Plastome EXPANDED (Untuk Bahan Pukat Harimau)
 rule fetch_plastome_expanded:
     output: 
-        fasta = config["reference_expanded_out"],
-        gbk   = config["reference_expanded_gbk"]
+        fasta = config["plastome_expanded_fasta"], # <-- Update: Storage Path
+        gbk   = config["plastome_expanded_gbk"]
     params:
         search_term = config["plastome_search_term"],
         min_len = config["plastome_min_len"],
         max_len = config["plastome_max_len"],
-        expand_lineage = True  # <--- SAKLAR ON
-    resources: ncbi_connection=1  # <--- UPDATE: Antri satu per satu
+        expand_lineage = True   # SAKLAR ON: Cari kerabat luas
+    resources: ncbi_connection=1 
     conda: "../envs/blast_biopython.yaml" 
     script: "../scripts/fetch_organelle_ref.py" 
 
-# 1.B. Fetch Mito EXPANDED (Untuk Master Bait) -> Saklar ON
+# 1.B. Fetch Mito EXPANDED (Untuk Bahan Pukat Harimau)
 rule fetch_mito_expanded:
     output: 
-        fasta = config["mito_reference_expanded_out"],
-        gbk   = config["mito_reference_expanded_gbk"]
+        fasta = config["mitome_expanded_fasta"],   # <-- Update: Storage Path
+        gbk   = config["mitome_expanded_gbk"]
     params:
-        search_term = config["mito_search_term"],
+        search_term = config["mito_search_term"], 
         min_len = config["mito_min_len"],
         max_len = config["mito_max_len"],
-        expand_lineage = True  # <--- SAKLAR ON
-    resources: ncbi_connection=1  # <--- UPDATE: Antri satu per satu
+        expand_lineage = True   # SAKLAR ON: Cari kerabat luas
+    resources: ncbi_connection=1 
     conda: "../envs/blast_biopython.yaml"
     script: "../scripts/fetch_organelle_ref.py"
 
-# 1.C. Fetch Plastome SPECIFIC (Untuk Smart Filter & Assessment) -> Saklar OFF
+# 1.C. Fetch Plastome SPECIFIC (Untuk Disimpan di Slot Plastome)
 rule fetch_plastome_specific:
     output: 
-        fasta = config["reference_out"],
-        gbk   = config["reference_gbk"]
+        fasta = config["plastome_specific_fasta"], # <-- Update: Storage Path
+        gbk   = config["plastome_specific_gbk"]
     params:
         search_term = config["plastome_search_term"],
         min_len = config["plastome_min_len"],
         max_len = config["plastome_max_len"],
-        expand_lineage = False # <--- SAKLAR OFF
-    resources: ncbi_connection=1  # <--- UPDATE: Antri satu per satu
+        expand_lineage = False  # SAKLAR OFF: Spesifik spesies ini
+    resources: ncbi_connection=1 
     conda: "../envs/blast_biopython.yaml"
     script: "../scripts/fetch_organelle_ref.py"
 
-# 1.D. Fetch Mito SPECIFIC (Untuk Smart Filter) -> Saklar OFF
+# 1.D. Fetch Mito SPECIFIC (Untuk Disimpan di Slot Mitome)
 rule fetch_mito_specific:
     output: 
-        fasta = config["mito_reference_out"],
-        gbk   = config["mito_reference_gbk"]
+        fasta = config["mitome_specific_fasta"],   # <-- Update: Storage Path
+        gbk   = config["mitome_specific_gbk"]
     params:
-        search_term = config["mito_search_term"],
+        search_term = config["mito_search_term"], 
         min_len = config["mito_min_len"],
         max_len = config["mito_max_len"],
-        expand_lineage = False # <--- SAKLAR OFF
-    resources: ncbi_connection=1  # <--- UPDATE: Antri satu per satu
+        expand_lineage = False  # SAKLAR OFF: Spesifik spesies ini
+    resources: ncbi_connection=1 
     conda: "../envs/blast_biopython.yaml"
     script: "../scripts/fetch_organelle_ref.py"
 
+# --- BAGIAN 2: HYBRID RECRUITMENT (ADAPTASI GETORGANELLE) ---
 
-# --- BAGIAN 2: PRE-FILTERING (Membuat Bahan Baku) ---
-
-# 2.A. Create Master Bait (Gabungan dari yang EXPANDED)
-rule create_master_bait:
+# Rule 2.A. Create Hybrid Bait (Gabungan Seed Database + Target Spesifik Kita)
+rule create_hybrid_bait:
     input:
-        ref_p = config["reference_expanded_out"],     # Input dari Rule 1.A
-        ref_m = config["mito_reference_expanded_out"] # Input dari Rule 1.B
+        # UPDATE: Menggabungkan Path Dir + Nama File dari Config
+        seed_db = os.path.join(config["seed_db_dir"], config["active_seed_file"]),
+        
+        # Referensi spesifik (Expanded Version)
+        ref_p   = config["plastome_expanded_fasta"],
+        ref_m   = config["mitome_expanded_fasta"]
     output:
-        bait = "resources/MASTER_BAIT_combined.fasta"
-    shell:
-        "cat {input.ref_p} {input.ref_m} > {output.bait}"
-
-# 2.B. The Big Sieve (Pukat Harimau 80GB -> 1GB)
-rule pre_filter_huge_data:
-    input:
-        # Ambil path 80GB dari TSV
-        raw_reads = lambda wildcards: samples.loc[wildcards.sample, "reads_path"],
-        # Ambil Master Bait dari langkah sebelumnya
-        bait      = "resources/MASTER_BAIT_combined.fasta"
-    output:
-        clean_fastq = "resources/{sample}_organelle_concentrated.fastq"
-    threads: 64
-    conda: "../envs/minimap2.yaml"
+        hybrid_bait = "resources/HYBRID_BAIT.fasta"
     shell:
         """
-        # Minimap2 dengan parameter LOOSE (Pukat Harimau)
-        minimap2 -ax map-ont \
-            -k12 -A1 -B2 -O2 -E1 -s40 \
-            -t {threads} \
-            {input.bait} {input.raw_reads} \
-        | samtools view -@ 4 -b -F 4 - \
-        | samtools fastq -@ 4 - > {output.clean_fastq}
+        cat {input.seed_db} {input.ref_p} {input.ref_m} > {output.hybrid_bait}
+        """
+
+# 2.B. The Smart Recruiter (Menggantikan Big Sieve Minimap2 Biasa)
+# Menggunakan script python 'recruiter.py' untuk:
+# 1. Filter Kualitas (Pre-map)
+# 2. Mapping ke Hybrid Bait
+# 3. Normalisasi Coverage (Subsampling jika > 200x)
+rule smart_recruitment:
+    input:
+        raw_reads   = lambda wildcards: samples.loc[wildcards.sample, "reads_path"],
+        hybrid_bait = "resources/HYBRID_BAIT.fasta",
+        script      = "scripts/recruiter.py" # Dependency script
+    output:
+        # Output ini SEKARANG sudah bersih dan ternormalisasi
+        concentrated = "resources/{sample}_organelle_concentrated.fastq" 
+    params:
+        # Mengirim parameter dari config ke script python
+        out_dir = "resources/temp_recruitment_{sample}", # Folder temp
+        est_size = config["recruitment"]["est_genome_size"],
+        min_cov  = config["recruitment"]["min_coverage"],
+        max_cov  = config["recruitment"]["max_coverage"],
+        min_len  = config["recruitment"]["min_read_len"],
+        min_qual = config["recruitment"]["min_read_qual"]
+    threads: 32 # Minimap2 di dalam script butuh thread
+    conda: "../envs/minimap2.yaml" # Script butuh samtools & minimap2
+    shell:
+        """
+        # Menjalankan script python secara shell command
+        # Usage: python recruiter.py <bait> <reads> <out_file> <threads> <est_size> <max_cov> ...
+        
+        # Kita perlu sedikit modifikasi cara panggil scriptnya agar sesuai dengan argumen sys.argv
+        # Asumsi recruiter.py dimodifikasi sedikit untuk menerima Argumen via CLI argparse atau sys.argv urut
+        
+        python {input.script} \
+            --bait {input.hybrid_bait} \
+            --reads {input.raw_reads} \
+            --output {output.concentrated} \
+            --threads {threads} \
+            --est_size {params.est_size} \
+            --max_cov {params.max_cov} \
+            --min_len {params.min_len} \
+            --min_qual {params.min_qual}
+        
+        # Bersihkan folder temp jika ada
+        rm -rf {params.out_dir}
         """

@@ -1,74 +1,86 @@
 # =============================================================================
-# CONFIGURATION FILE FOR ORGANELLE ASSEMBLY PIPELINE (RESCUE MODE)
+# CONFIGURATION FILE FOR ORGANELLE ASSEMBLY PIPELINE
+# Version: 2.0 (Smart Switch Mode)
+# Author: Nauval Rajwaa
 # =============================================================================
 
-# --- SYSTEM SETTINGS ---
+# -----------------------------------------------------------------------------
+# [BAGIAN 1] PENGATURAN SISTEM & GLOBAL
+# -----------------------------------------------------------------------------
 threads: 48
-email: "nauvalrajwaa@gmail.com"  # Wajib untuk download NCBI
-samples_file: "config/samples.tsv" # TSV ini nanti merujuk ke hasil output Rule 0
+email: "nauvalrajwaa@gmail.com"  # Wajib ada agar NCBI tidak memblokir IP saat download
+samples_file: "config/samples.tsv" 
 
-# --- ASSEMBLY CONTROL ---
-# Target Utama: "PLASTOME", "MITO", atau "BOTH"
-# Karena kita mau merakit Plastome Tebu, set PLASTOME.
-target_assembly: "PLASTOME" 
+# =============================================================================
+# [PENTING] MODE SAKLAR UTAMA (GLOBAL SWITCH)
+# =============================================================================
+# Ubah nilai di bawah ini untuk menentukan target assembly Anda.
+# Pilihan: 
+#   - "PLASTOME" : Merakit Kloroplas (Mitokondria jadi blacklist/dibuang)
+#   - "MITOME"   : Merakit Mitokondria (Kloroplas jadi blacklist/dibuang)
+#
+# Cukup ganti satu kata ini, semua path dan seed akan otomatis menyesuaikan.
+run_mode: "PLASTOME"
 
-# Estimasi ukuran untuk parameter assembler (Flye/Canu)
-target_est_size: "150k" 
+# -----------------------------------------------------------------------------
+# [BAGIAN 2] DEFINISI PATH REFERENSI (WAREHOUSE)
+# -----------------------------------------------------------------------------
+# Bagian ini adalah "Gudang Data". Anda mendefinisikan di mana file disimpan.
+# Script akan otomatis memilih file mana yang dipakai berdasarkan 'run_mode' di atas.
+# JANGAN DIUBAH kecuali Anda mengubah struktur folder/nama file.
 
-# Output hasil saringan (File ini yang nanti akan dibaca oleh rule selanjutnya)
-filtered_fastq_out: "resources/reads_organelle_concentrated.fastq"
+paths:
+  # Konfigurasi untuk PLASTOME
+  plastome:
+    fasta: "resources/ref_specific_plastome.fasta"  # Hasil download NCBI (Fasta)
+    gbk:   "resources/ref_specific_plastome.gb"     # Hasil download NCBI (GenBank)
+    seed:  "embplant_pt.fasta"                      # Seed GetOrganelle (Tumbuhan Plastida)
+    size:  "150k"                                   # Estimasi ukuran genom (bp)
+  
+  # Konfigurasi untuk MITOME
+  mitome:
+    fasta: "resources/ref_specific_mitome.fasta"
+    gbk:   "resources/ref_specific_mitome.gb"
+    seed:  "embplant_mt.fasta"                      # Seed GetOrganelle (Tumbuhan Mitokondria)
+    size:  "400k"                                   # Estimasi ukuran genom (bp)
 
-# --- REFERENCE FILE PATHS (OUTPUT FETCHING) ---
-# Path ini digunakan untuk menyimpan hasil download referensi Primary (Tebu)
-# Penting untuk Assessment, Smart Filter, dan MitoHiFi
+# -----------------------------------------------------------------------------
+# [BAGIAN 3] PARAMETER PENCARIAN NCBI (FETCHER)
+# -----------------------------------------------------------------------------
+# Digunakan oleh script python untuk mendownload referensi yang tepat secara otomatis.
 
-# Output References (SPECIFIC - Untuk Smart Filter & MitoHiFi)
-reference_out: "resources/ref_tebu_plastome.fasta"
-reference_gbk: "resources/ref_tebu_plastome.gb"
-mito_reference_out: "resources/ref_tebu_mito.fasta"
-mito_reference_gbk: "resources/ref_tebu_mito.gb"
+plastome_search:
+  term: "Saccharum officinarum chloroplast complete genome"
+  min: 120000 
+  max: 180000
 
-# Output References (EXPANDED - Untuk Master Bait) <-- PASTIKAN INI ADA
-reference_expanded_out: "resources/ref_tebu_plastome_expanded.fasta"
-reference_expanded_gbk: "resources/ref_tebu_plastome_expanded.gb"
-mito_reference_expanded_out: "resources/ref_tebu_mito_expanded.fasta"
-mito_reference_expanded_gbk: "resources/ref_tebu_mito_expanded.gb"
+mito_search:
+  term: "Saccharum officinarum mitochondrion complete genome"
+  min: 250000 
+  max: 600000
 
-# 3. Master Bait (Super Bait)
-# File gabungan Plastome + Mito yang dibuat otomatis oleh Rule 0
-super_bait_path: "resources/MASTER_BAIT_combined.fasta"
+# -----------------------------------------------------------------------------
+# [BAGIAN 4] PENGATURAN TOOLS LAINNYA
+# -----------------------------------------------------------------------------
 
-# --- PARAMETER PENCARIAN NCBI (FETCHER) ---
-# Query Taxa: Gunakan Primary saja agar referensi tajam (Tebu Only)
-# Kerabat lain sudah ditangani oleh Minimap2 parameter 'loose'
-query_taxa:
-  primary:
-    - "Saccharum officinarum"
-    - "Saccharum spontaneum"
-  secondary: [] 
-  outgroup: []
+# Input File
+concentrated_fastq: "resources/organelle_concentrated.fastq"
 
-# Parameter Search Plastome
-plastome_search_term: "chloroplast[Title] OR plastid[Title]"
-# Range dilonggarkan (80k-180k) agar penilaian Flexible/Ranking berfungsi
-plastome_min_len: 80000 
-plastome_max_len: 180000
-# Range untuk penilaian Assessment (Zona Aman)
-plastome_min: 80000
-plastome_max: 180000
+# GetOrganelle Database Path
+seed_db_dir: "resources/SeedDatabase" 
 
-# Parameter Search Mitochondria
-mito_search_term: "mitochondrion[Title] OR mitochondrial[Title] OR mitochondria[Title]"
-mito_min_len: 150000
-mito_max_len: 600000 # Mito tebu bisa besar/multipartite
+# Polishing (Medaka)
+# Pastikan model sesuai dengan flowcell/basecaller data Anda
+medaka_model: "r10.4.1_e8.2_400bps_sup@v5.2.0"
 
-# --- RESCUE CONFIGURATION ---
-run_circularization_rescue: "YES"
-# List assembler yang mau dijalankan di MitoHiFi
-loop_mitohifi: "flye, raven, canu" 
-# Nama spesies untuk filtering referensi cerdas
+# Rescue & Circularization (MitoHiFi)
+run_circularization_rescue: "NO"  # Set YES jika ingin force rescue contig linear
+loop_mitohifi: "flye, raven"      # Tool mana saja yang akan dicoba di-rescue
 species_name: "Saccharum officinarum"
 
-# --- TOOLS ---
-# Model Medaka (Opsional, jika nanti ingin polishing tambahan)
-medaka_model: "r10.4.1_e8.2_400bps_sup@v5.2.0"
+# Filtering & Recruitment (Minimap2)
+recruitment:
+  min_coverage: 20         
+  max_coverage: 200        
+  min_read_len: 1000       
+  min_read_qual: 10
