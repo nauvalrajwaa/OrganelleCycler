@@ -85,6 +85,7 @@ species_name: "Saccharum officinarum"
 
 # Filtering & Recruitment (Minimap2)
 recruitment:
+  est_genome_size: 150000
   min_coverage: 20         
   max_coverage: 200        
   min_read_len: 1000       
