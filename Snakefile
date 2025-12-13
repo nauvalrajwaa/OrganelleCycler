@@ -73,9 +73,27 @@ if "est_genome_size" not in config["recruitment"]:
 config["target_est_size"] = config["recruitment"]["est_genome_size"]
 
 # Debug Info
-print(f"[INFO] Target Ref      : {target_ref}")
-print(f"[INFO] Target Size     : {config['recruitment']['est_genome_size']} bp")
-print("-" * 50)
+# =============================================================================
+# CONSOLE LOGGING (STATUS REPORT)
+# =============================================================================
+print("\n" + "="*70)
+print(f"🚀  ORGANELLE CYCLER PIPELINE REPORT")
+print("="*70)
+print(f"{'🔹 RUN MODE':<25} : [ {mode} ]")
+print(f"{'🔹 EST. GENOME SIZE':<25} : {config['recruitment']['est_genome_size']} bp")
+print("-" * 70)
+print("📂 REFERENCE FILES:")
+print(f"   - Target Ref (Fasta)   : {target_ref}")
+print(f"   - Target Ref (GBK)     : {target_gbk}")
+print(f"   - Blacklist (Negative) : {blacklist_ref}")
+print(f"   - Seed Database        : {active_seed}")
+print(f"   - Label Database       : {active_label}")
+print("-" * 70)
+print("⚙️  CONFIGURATION:")
+print(f"   - Active Assemblers    : {', '.join(ASSEMBLERS)}")
+print(f"   - Total Samples        : {len(samples)} sample(s)")
+print(f"   - Samples List         : {', '.join(samples.index[:5])}{'...' if len(samples) > 5 else ''}")
+print("="*70 + "\n")
 
 # 3. SETUP TARGETS
 # -----------------------------------------------------------------------------
