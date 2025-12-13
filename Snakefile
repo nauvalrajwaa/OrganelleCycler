@@ -3,7 +3,7 @@ import os
 
 # =============================================================================
 # SNAKEMAKE PIPELINE: ORGANELLE ASSEMBLY
-# Version: 2.4 (Added Blacklist Logic)
+# Version: 2.5 (Fixed QC Variable Mapping)
 # =============================================================================
 
 configfile: "config/config.yaml"
@@ -16,18 +16,16 @@ print(f"🚀 RUNNING PIPELINE IN MODE: [ {mode} ]")
 
 # 2. VARIABEL DINAMIS (PATH & BLACKLIST)
 # -----------------------------------------------------------------------------
-# Default Values
 DEFAULTS = {
     "PLASTOME": { "seed": "embplant_pt.fasta", "label": "embplant_pt.fasta", "size": "150k" },
     "MITOME":   { "seed": "embplant_mt.fasta", "label": "embplant_mt.fasta", "size": "400k" }
 }
 
 if mode == "PLASTOME":
-    # Target = Plastome
+    # Target
     target_ref = config["paths"]["plastome"]["specific"]["fasta"]
     target_gbk = config["paths"]["plastome"]["specific"]["gbk"]
-    
-    # Blacklist = Mitome (Organel 'musuh' yang akan dibuang)
+    # Blacklist (Mitome)
     blacklist_ref = config["paths"]["mitome"]["specific"]["fasta"]
     
     # Metadata
@@ -35,15 +33,12 @@ if mode == "PLASTOME":
     active_seed  = p_conf.get("seed", DEFAULTS["PLASTOME"]["seed"])
     active_label = p_conf.get("label", DEFAULTS["PLASTOME"]["label"])
     target_size  = p_conf.get("size", DEFAULTS["PLASTOME"]["size"])
-    
-    final_assembly = "results/assembly_plastome/final_circular.fasta"
 
 elif mode == "MITOME":
-    # Target = Mitome
+    # Target
     target_ref = config["paths"]["mitome"]["specific"]["fasta"]
     target_gbk = config["paths"]["mitome"]["specific"]["gbk"]
-    
-    # Blacklist = Plastome
+    # Blacklist (Plastome)
     blacklist_ref = config["paths"]["plastome"]["specific"]["fasta"]
     
     # Metadata
@@ -51,23 +46,26 @@ elif mode == "MITOME":
     active_seed  = m_conf.get("seed", DEFAULTS["MITOME"]["seed"])
     active_label = m_conf.get("label", DEFAULTS["MITOME"]["label"])
     target_size  = m_conf.get("size", DEFAULTS["MITOME"]["size"])
-    
-    final_assembly = "results/assembly_mitome/final_circular.fasta"
 
 else:
     raise ValueError(f"Mode {mode} tidak dikenal.")
 
 # --- INJECT KE CONFIG GLOBAL ---
-# Agar rules/02_assembly.smk bisa membaca config["blacklist_ref"]
+# Ini agar semua rules (.smk) bisa membaca variabel tanpa error
 config["active_seed"]   = active_seed
 config["active_label"]  = active_label
 config["target_ref"]    = target_ref
 config["target_gbk"]    = target_gbk
-config["blacklist_ref"] = blacklist_ref  # <--- INI SOLUSINYA
+config["blacklist_ref"] = blacklist_ref
 
-# Debug print untuk memastikan jalur benar
-print(f"[INFO] Target Ref    : {target_ref}")
-print(f"[INFO] Blacklist Ref : {blacklist_ref}")
+# [FIX] Jembatan untuk 03_qc.smk
+# Rule QC mencari 'target_est_size', kita ambil nilainya dari config 'recruitment'
+config["target_est_size"] = config["recruitment"]["est_genome_size"]
+
+# Debug Info
+print(f"[INFO] Target Ref      : {target_ref}")
+print(f"[INFO] Blacklist Ref   : {blacklist_ref}")
+print(f"[INFO] Target Size (bp): {config['target_est_size']}")
 print("-" * 50)
 
 # 3. SETUP TARGETS
