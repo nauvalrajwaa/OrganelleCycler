@@ -29,35 +29,38 @@ run_mode: "PLASTOME"
 # Script akan otomatis memilih file mana yang dipakai berdasarkan 'run_mode' di atas.
 # JANGAN DIUBAH kecuali Anda mengubah struktur folder/nama file.
 
-paths:
-  # Konfigurasi untuk PLASTOME
-  plastome:
-    fasta: "resources/ref_specific_plastome.fasta"  # Hasil download NCBI (Fasta)
-    gbk:   "resources/ref_specific_plastome.gb"     # Hasil download NCBI (GenBank)
-    seed:  "embplant_pt.fasta"                      # Seed GetOrganelle (Tumbuhan Plastida)
-    size:  "150k"                                   # Estimasi ukuran genom (bp)
+# --- 1. PROJECT IDENTITY ---
+project:
+  species_name: "Saccharum officinarum"  # <--- Cukup ganti ini untuk project baru
   
-  # Konfigurasi untuk MITOME
+# --- 2. SETTINGS & SWITCHES ---
+settings:
+  use_expanded_search: False 
+
+  # Parameter Filter (Angka tetap disimpan di sini)
+  filter_params:
+    p_min: 100000
+    p_max: 200000
+    m_min: 200000
+    m_max: 600000
+
+# --- 3. STORAGE PATHS ---
+paths:
+  plastome:
+    specific:
+      fasta: "resources/ref_specific_plastome.fasta"
+      gbk:   "resources/ref_specific_plastome.gb"
+    expanded:
+      fasta: "resources/ref_expanded_plastome.fasta"
+      gbk:   "resources/ref_expanded_plastome.gb"
+
   mitome:
-    fasta: "resources/ref_specific_mitome.fasta"
-    gbk:   "resources/ref_specific_mitome.gb"
-    seed:  "embplant_mt.fasta"                      # Seed GetOrganelle (Tumbuhan Mitokondria)
-    size:  "400k"                                   # Estimasi ukuran genom (bp)
-
-# -----------------------------------------------------------------------------
-# [BAGIAN 3] PARAMETER PENCARIAN NCBI (FETCHER)
-# -----------------------------------------------------------------------------
-# Digunakan oleh script python untuk mendownload referensi yang tepat secara otomatis.
-
-plastome_search:
-  term: "Saccharum officinarum chloroplast complete genome"
-  min: 120000 
-  max: 180000
-
-mito_search:
-  term: "Saccharum officinarum mitochondrion complete genome"
-  min: 250000 
-  max: 600000
+    specific:
+      fasta: "resources/ref_specific_mitome.fasta"
+      gbk:   "resources/ref_specific_mitome.gb"
+    expanded:
+      fasta: "resources/ref_expanded_mitome.fasta"
+      gbk:   "resources/ref_expanded_mitome.gb"
 
 # -----------------------------------------------------------------------------
 # [BAGIAN 4] PENGATURAN TOOLS LAINNYA
@@ -68,6 +71,8 @@ concentrated_fastq: "resources/organelle_concentrated.fastq"
 
 # GetOrganelle Database Path
 seed_db_dir: "resources/SeedDatabase" 
+
+label_db_dir: "resources/LabelDatabase"
 
 # Polishing (Medaka)
 # Pastikan model sesuai dengan flowcell/basecaller data Anda

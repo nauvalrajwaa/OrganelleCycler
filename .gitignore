@@ -1,5 +1,6 @@
 # Ignore Snakemake runtime
 .snakemake/
+.cache/
 
 # Ignore common output directories
 logs/

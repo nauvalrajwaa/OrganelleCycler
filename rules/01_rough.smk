@@ -1,7 +1,37 @@
 # ==============================================================================
-# PHASE 2: PRE-QC ROUGH ASSEMBLY (DIAGNOSTIC ONLY)
-# Flow: Assembly -> Cleaning -> Solving (Fasta) -> Polishing (Medaka)
+# PHASE 2: PRE-QC ROUGH ASSEMBLY
 # ==============================================================================
+
+# --- 0. PREPARATION: Extract & Prepare Cleaner Bait ---
+
+# RULE BARU: Ekstrak Gen (CDS/tRNA/rRNA) dari Target Reference GenBank (.gb)
+# Ini memastikan kita punya database gen spesifik dari spesies target.
+rule extract_target_genes:
+    input:
+        gbk = config["target_gbk"]  # File .gb yang didownload di prep
+    output:
+        genes_fasta = "resources/target_extracted_genes.fasta"
+    conda: "../envs/python_utils.yaml"  # Pastikan env ini ada biopython
+    shell:
+        "python scripts/extract_genes.py {input.gbk} {output.genes_fasta}"
+
+# UPDATE RULE: Membuat 'Super Bait' untuk Cleaner
+# Gabungan: Label DB (Gen Umum) + Target Extracted Genes (Gen Spesifik)
+rule create_cleaner_bait:
+    input:
+        # 1. Gene Database Umum (misal: embplant_pt.fasta)
+        label_db = os.path.join(config["label_db_dir"], config["active_label"]),
+        
+        # 2. Gene Spesifik dari Target (Hasil ekstraksi di atas)
+        target_genes = "resources/target_extracted_genes.fasta"
+    output:
+        bait_db = "resources/CLEANER_BAIT_TARGET.fasta"
+    shell:
+        """
+        cat {input.label_db} {input.target_genes} > {output.bait_db}
+        """
+
+# --- 1. ASSEMBLERS ---
 
 rule rough_assembly_flye:
     input:
@@ -35,7 +65,8 @@ rule rough_assembly_raven:
 rule clean_rough_flye:
     input:
         gfa = "results/{sample}/01_rough/flye/assembly_graph.gfa",
-        ref = config["ref_path"]
+        # UPDATE: Menggunakan Bait Gabungan (Gene + Genome) yang baru dibuat
+        ref = "resources/CLEANER_BAIT_TARGET.fasta"
     output:
         gfa_clean = "results/{sample}/01_rough/flye/assembly_graph.cleaned.gfa"
     params:
@@ -44,6 +75,9 @@ rule clean_rough_flye:
     conda: "../envs/python_utils.yaml"
     shell:
         """
+        # Hapus temp dir jika ada
+        rm -rf {params.temp_dir}
+
         python scripts/cleaner.py \
             --gfa {input.gfa} \
             --ref {input.ref} \
@@ -72,7 +106,7 @@ rule polish_rough_flye:
     threads: config["threads"]
     conda: "../envs/medaka.yaml"
     params:
-        model = config.get("medaka_model", "r941_min_hac_g507"),
+        model = config.get("medaka_model", "r10.4.1_e8.2_400bps_sup@v5.2.0"),
         outdir = "results/{sample}/01_rough/flye/medaka_temp"
     shell:
         """
@@ -98,7 +132,8 @@ rule polish_rough_flye:
 rule clean_rough_raven:
     input:
         gfa = "results/{sample}/01_rough/raven.gfa",
-        ref = config["ref_path"]
+        # UPDATE: Menggunakan Bait Gabungan (Gene + Genome)
+        ref = "resources/CLEANER_BAIT_TARGET.fasta"
     output:
         gfa_clean = "results/{sample}/01_rough/raven.cleaned.gfa"
     params:
@@ -107,6 +142,8 @@ rule clean_rough_raven:
     conda: "../envs/python_utils.yaml"
     shell:
         """
+        rm -rf {params.temp_dir}
+
         python scripts/cleaner.py \
             --gfa {input.gfa} \
             --ref {input.ref} \
@@ -134,7 +171,7 @@ rule polish_rough_raven:
     threads: config["threads"]
     conda: "../envs/medaka.yaml"
     params:
-        model = config.get("medaka_model", "r941_min_hac_g507"),
+        model = config.get("medaka_model", "r10.4.1_e8.2_400bps_sup@v5.2.0"),
         outdir = "results/{sample}/01_rough/raven/medaka_temp"
     shell:
         """
@@ -152,9 +189,6 @@ rule polish_rough_raven:
 # ==============================================================================
 # VISUALIZATION (RAW GFA vs CLEANED GFA)
 # ==============================================================================
-# Catatan: Bandage hanya bisa visualisasi GFA (Graph). 
-# Medaka menghasilkan FASTA (Sequence), jadi tidak bisa diplot di sini.
-# Kita plot "Cleaned GFA" sebagai representasi struktur akhir sebelum dipoles.
 
 rule plot_rough_graphs:
     input:

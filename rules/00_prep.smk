@@ -1,84 +1,101 @@
-# =============================================================================
-# PHASE 0 & 1: PRE-PROCESSING & FETCHING
+# ==============================================================================
+# PHASE 1: PREPARATION & FETCHING
 # File: rules/00_prep.smk
-# =============================================================================
+# ==============================================================================
 
-# --- BAGIAN 1: FETCHING REFERENSI (4 Rules) ---
-# Tujuannya: Mengisi "Gudang" (Storage Paths) yang didefinisikan di config.
-# Kita butuh versi EXPANDED (untuk Pukat Harimau) dan SPECIFIC (untuk Target/Blacklist).
+# --- Helper Python: Ambil Nama Spesies & Genus ---
+SPECIES = config["project"]["species_name"]       # Contoh: "Saccharum officinarum"
+GENUS   = SPECIES.split()[0]                      # Ambil kata pertama: "Saccharum"
 
-# 1.A. Fetch Plastome EXPANDED (Untuk Bahan Pukat Harimau)
-rule fetch_plastome_expanded:
-    output: 
-        fasta = config["plastome_expanded_fasta"], # <-- Update: Storage Path
-        gbk   = config["plastome_expanded_gbk"]
-    params:
-        search_term = config["plastome_search_term"],
-        min_len = config["plastome_min_len"],
-        max_len = config["plastome_max_len"],
-        expand_lineage = True   # SAKLAR ON: Cari kerabat luas
-    resources: ncbi_connection=1 
-    conda: "../envs/blast_biopython.yaml" 
-    script: "../scripts/fetch_organelle_ref.py" 
+# ------------------------------------------------------------------------------
+# BAGIAN 1: FETCH SPECIFIC (Selalu Jalan)
+# ------------------------------------------------------------------------------
 
-# 1.B. Fetch Mito EXPANDED (Untuk Bahan Pukat Harimau)
-rule fetch_mito_expanded:
-    output: 
-        fasta = config["mitome_expanded_fasta"],   # <-- Update: Storage Path
-        gbk   = config["mitome_expanded_gbk"]
-    params:
-        search_term = config["mito_search_term"], 
-        min_len = config["mito_min_len"],
-        max_len = config["mito_max_len"],
-        expand_lineage = True   # SAKLAR ON: Cari kerabat luas
-    resources: ncbi_connection=1 
-    conda: "../envs/blast_biopython.yaml"
-    script: "../scripts/fetch_organelle_ref.py"
-
-# 1.C. Fetch Plastome SPECIFIC (Untuk Disimpan di Slot Plastome)
 rule fetch_plastome_specific:
-    output: 
-        fasta = config["plastome_specific_fasta"], # <-- Update: Storage Path
-        gbk   = config["plastome_specific_gbk"]
+    output:
+        fasta = config["paths"]["plastome"]["specific"]["fasta"],
+        gbk   = config["paths"]["plastome"]["specific"]["gbk"]
     params:
-        search_term = config["plastome_search_term"],
-        min_len = config["plastome_min_len"],
-        max_len = config["plastome_max_len"],
-        expand_lineage = False  # SAKLAR OFF: Spesifik spesies ini
-    resources: ncbi_connection=1 
+        # OTOMATIS: "Saccharum officinarum[orgn] AND chloroplast[filter]..."
+        search_term = f'"{SPECIES}"[orgn] AND chloroplast[filter] AND complete genome[title]',
+        min_len     = config["settings"]["filter_params"]["p_min"],
+        max_len     = config["settings"]["filter_params"]["p_max"],
+        expand_lineage = False 
+    resources: ncbi_connection=1
     conda: "../envs/blast_biopython.yaml"
     script: "../scripts/fetch_organelle_ref.py"
 
-# 1.D. Fetch Mito SPECIFIC (Untuk Disimpan di Slot Mitome)
 rule fetch_mito_specific:
-    output: 
-        fasta = config["mitome_specific_fasta"],   # <-- Update: Storage Path
-        gbk   = config["mitome_specific_gbk"]
+    output:
+        fasta = config["paths"]["mitome"]["specific"]["fasta"],
+        gbk   = config["paths"]["mitome"]["specific"]["gbk"]
     params:
-        search_term = config["mito_search_term"], 
-        min_len = config["mito_min_len"],
-        max_len = config["mito_max_len"],
-        expand_lineage = False  # SAKLAR OFF: Spesifik spesies ini
-    resources: ncbi_connection=1 
+        # OTOMATIS: "Saccharum officinarum[orgn] AND mitochondrion[filter]..."
+        search_term = f'"{SPECIES}"[orgn] AND mitochondrion[filter] AND complete genome[title]',
+        min_len     = config["settings"]["filter_params"]["m_min"],
+        max_len     = config["settings"]["filter_params"]["m_max"],
+        expand_lineage = False
+    resources: ncbi_connection=1
     conda: "../envs/blast_biopython.yaml"
     script: "../scripts/fetch_organelle_ref.py"
+
+# ------------------------------------------------------------------------------
+# BAGIAN 2: FETCH EXPANDED (Kondisional)
+# ------------------------------------------------------------------------------
+
+if config["settings"]["use_expanded_search"]:
+
+    rule fetch_plastome_expanded:
+        output:
+            fasta = config["paths"]["plastome"]["expanded"]["fasta"],
+            gbk   = config["paths"]["plastome"]["expanded"]["gbk"]
+        params:
+            # OTOMATIS: Pakai GENUS saja -> "Saccharum[orgn] AND ..."
+            search_term = f'"{GENUS}"[orgn] AND chloroplast[filter] AND complete genome[title]',
+            min_len     = config["settings"]["filter_params"]["p_min"],
+            max_len     = config["settings"]["filter_params"]["p_max"],
+            expand_lineage = True
+        resources: ncbi_connection=1
+        conda: "../envs/blast_biopython.yaml"
+        script: "../scripts/fetch_organelle_ref.py"
+
+    rule fetch_mito_expanded:
+        output:
+            fasta = config["paths"]["mitome"]["expanded"]["fasta"],
+            gbk   = config["paths"]["mitome"]["expanded"]["gbk"]
+        params:
+            # OTOMATIS: Pakai GENUS saja -> "Saccharum[orgn] AND ..."
+            search_term = f'"{GENUS}"[orgn] AND mitochondrion[filter] AND complete genome[title]',
+            min_len     = config["settings"]["filter_params"]["m_min"],
+            max_len     = config["settings"]["filter_params"]["m_max"],
+            expand_lineage = True
+        resources: ncbi_connection=1
+        conda: "../envs/blast_biopython.yaml"
+        script: "../scripts/fetch_organelle_ref.py"
 
 # --- BAGIAN 2: HYBRID RECRUITMENT (ADAPTASI GETORGANELLE) ---
+import os
 
-# Rule 2.A. Create Hybrid Bait (Gabungan Seed Database + Target Spesifik Kita)
+# Rule 2.A. Create Hybrid Bait (Gabungan Seed Database + Target + Blacklist)
+# Tujuannya: Membuat pancingan "Super" yang menangkap semua DNA organel (baik target maupun kontaminan)
+# agar tidak ada yang lolos di tahap awal. Pemisahan dilakukan nanti.
+
 rule create_hybrid_bait:
     input:
-        # UPDATE: Menggabungkan Path Dir + Nama File dari Config
-        seed_db = os.path.join(config["seed_db_dir"], config["active_seed_file"]),
+        # 1. Seed Database (Seed GetOrganelle yang aktif)
+        # Variabel 'active_seed' sudah diset otomatis di Snakefile (embplant_pt atau embplant_mt)
+        seed_db = os.path.join(config["seed_db_dir"], config["active_seed"]),
         
-        # Referensi spesifik (Expanded Version)
-        ref_p   = config["plastome_expanded_fasta"],
-        ref_m   = config["mitome_expanded_fasta"]
+        # 2. Reference Target (HANYA Target, bukan keduanya)
+        # Variabel 'target_ref' sudah diset otomatis di Snakefile sesuai MODE
+        target_ref = config["target_ref"]
     output:
         hybrid_bait = "resources/HYBRID_BAIT.fasta"
     shell:
         """
-        cat {input.seed_db} {input.ref_p} {input.ref_m} > {output.hybrid_bait}
+        # Gabungkan Seed Database + Target Reference Genome
+        # Ini membuat baiting fokus hanya pada organel yang sedang dikerjakan.
+        cat {input.seed_db} {input.target_ref} > {output.hybrid_bait}
         """
 
 # 2.B. The Smart Recruiter (Menggantikan Big Sieve Minimap2 Biasa)

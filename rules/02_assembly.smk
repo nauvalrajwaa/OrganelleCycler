@@ -17,7 +17,7 @@ rule filter_reads_dual:
     output:
         temp_neg    = temp("results/{sample}/03_temp/filtered_neg.fastq"),
         final_reads = "results/{sample}/03_filtered_reads/recruited_reads.fastq",
-        stats       = "results/{sample}/03_filtered_reads/filtering_stats.txt" # OUTPUT BARU
+        stats       = "results/{sample}/03_filtered_reads/filtering_stats.txt"
     log: "logs/{sample}/03_filter_reads.log"
     threads: config["threads"]
     conda: "../envs/minimap2.yaml"
@@ -28,6 +28,7 @@ rule filter_reads_dual:
         TOTAL_READS=$((TOTAL_LINES / 4))
 
         # 2. Blacklist Filtering (Buang yang nempel Blacklist)
+        # -f 4 : Keep Unmapped (artinya yang TIDAK nempel ke blacklist disimpan)
         (minimap2 -ax map-ont -t {threads} {input.blacklist} {input.reads} \
         | samtools view -b -f 4 - \
         | samtools fastq - > {output.temp_neg}) 2> {log}
@@ -37,6 +38,7 @@ rule filter_reads_dual:
         NEG_READS=$((NEG_LINES / 4))
 
         # 3. Target Recruitment (Ambil yang nempel Target)
+        # -F 4 : Discard Unmapped (artinya HANYA yang nempel ke target disimpan)
         (minimap2 -ax map-ont -t {threads} {input.target} {output.temp_neg} \
         | samtools view -b -F 4 - \
         | samtools fastq - > {output.final_reads}) 2>> {log}
@@ -58,6 +60,7 @@ rule generate_filtering_report:
         stats = "results/{sample}/03_filtered_reads/filtering_stats.txt"
     output:
         html = "results/{sample}/03_filtered_reads/FILTERING_REPORT.html"
+    conda: "../envs/python_utils.yaml" # Pastikan env ini punya pandas/jinja2 jika script butuh
     script: "../scripts/report_filtering.py"
 
 # --- STEP 2: ASSEMBLY (Input: Filtered Reads) ---
@@ -65,7 +68,7 @@ rule generate_filtering_report:
 rule final_assembly_flye:
     input: "results/{sample}/03_filtered_reads/recruited_reads.fastq"
     output:
-        gfa = "results/{sample}/04_assemblies/flye/assembly_graph.gfa",
+        gfa   = "results/{sample}/04_assemblies/flye/assembly_graph.gfa",
         fasta = "results/{sample}/04_assemblies/flye/assembly.fasta"
     log: "logs/{sample}/04_flye_final.log"
     params: outdir = "results/{sample}/04_assemblies/flye"
@@ -78,7 +81,7 @@ rule final_assembly_flye:
 rule final_assembly_raven:
     input: "results/{sample}/03_filtered_reads/recruited_reads.fastq"
     output:
-        gfa = "results/{sample}/04_assemblies/raven/assembly_graph.gfa",
+        gfa   = "results/{sample}/04_assemblies/raven/assembly_graph.gfa",
         fasta = "results/{sample}/04_assemblies/raven/assembly.fasta"
     log: "logs/{sample}/04_raven_final.log"
     threads: config["threads"]
@@ -92,14 +95,18 @@ rule final_assembly_raven:
 rule clean_final_flye:
     input:
         gfa = "results/{sample}/04_assemblies/flye/assembly_graph.gfa",
-        ref = config["target_ref"] # Gunakan target ref untuk guiding cleaner
+        # UPDATE: Gunakan 'CLEANER_BAIT_TARGET' (Gene + Genome) agar konsisten dengan 01_rough
+        ref = "resources/CLEANER_BAIT_TARGET.fasta"
     output:
         gfa_clean = "results/{sample}/04_assemblies/flye/assembly_graph.cleaned.gfa"
     params: temp_dir = "results/{sample}/04_assemblies/flye/temp_cleaner"
     log: "logs/{sample}/04_clean_flye.log"
     conda: "../envs/python_utils.yaml"
     shell:
-        "python scripts/cleaner.py --gfa {input.gfa} --ref {input.ref} --out {output.gfa_clean} --temp {params.temp_dir} > {log} 2>&1"
+        """
+        rm -rf {params.temp_dir}
+        python scripts/cleaner.py --gfa {input.gfa} --ref {input.ref} --out {output.gfa_clean} --temp {params.temp_dir} > {log} 2>&1
+        """
 
 rule solve_final_flye:
     input: "results/{sample}/04_assemblies/flye/assembly_graph.cleaned.gfa"
@@ -113,14 +120,18 @@ rule solve_final_flye:
 rule clean_final_raven:
     input:
         gfa = "results/{sample}/04_assemblies/raven/assembly_graph.gfa",
-        ref = config["target_ref"]
+        # UPDATE: Gunakan 'CLEANER_BAIT_TARGET' (Gene + Genome)
+        ref = "resources/CLEANER_BAIT_TARGET.fasta"
     output:
         gfa_clean = "results/{sample}/04_assemblies/raven/assembly_graph.cleaned.gfa"
     params: temp_dir = "results/{sample}/04_assemblies/raven/temp_cleaner"
     log: "logs/{sample}/04_clean_raven.log"
     conda: "../envs/python_utils.yaml"
     shell:
-        "python scripts/cleaner.py --gfa {input.gfa} --ref {input.ref} --out {output.gfa_clean} --temp {params.temp_dir} > {log} 2>&1"
+        """
+        rm -rf {params.temp_dir}
+        python scripts/cleaner.py --gfa {input.gfa} --ref {input.ref} --out {output.gfa_clean} --temp {params.temp_dir} > {log} 2>&1
+        """
 
 rule solve_final_raven:
     input: "results/{sample}/04_assemblies/raven/assembly_graph.cleaned.gfa"
@@ -143,11 +154,12 @@ rule polish_final_flye:
     threads: config["threads"]
     conda: "../envs/medaka.yaml"
     params:
-        model = config.get("medaka_model", "r941_min_hac_g507"),
+        model = config.get("medaka_model", "r10.4.1_e8.2_400bps_sup@v5.2.0"),
         outdir = "results/{sample}/05_final_assembly/flye_medaka_temp"
     shell:
         """
         if [ ! -s {input.assembly} ]; then touch {output.final}; exit 0; fi
+        
         medaka_consensus -i {input.reads} -d {input.assembly} -o {params.outdir} -t {threads} -m {params.model} > {log} 2>&1
         mv {params.outdir}/consensus.fasta {output.final}
         rm -rf {params.outdir}
@@ -163,11 +175,12 @@ rule polish_final_raven:
     threads: config["threads"]
     conda: "../envs/medaka.yaml"
     params:
-        model = config.get("medaka_model", "r941_min_hac_g507"),
+        model = config.get("medaka_model", "r10.4.1_e8.2_400bps_sup@v5.2.0"),
         outdir = "results/{sample}/05_final_assembly/raven_medaka_temp"
     shell:
         """
         if [ ! -s {input.assembly} ]; then touch {output.final}; exit 0; fi
+        
         medaka_consensus -i {input.reads} -d {input.assembly} -o {params.outdir} -t {threads} -m {params.model} > {log} 2>&1
         mv {params.outdir}/consensus.fasta {output.final}
         rm -rf {params.outdir}
