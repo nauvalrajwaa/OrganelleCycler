@@ -1,5 +1,6 @@
 import sys
 import os
+import shutil
 from collections import defaultdict
 
 # ==========================================
@@ -27,63 +28,53 @@ class Node:
 # ==========================================
 
 def parse_flye_gfa(gfa_path):
-    """
-    Membaca GFA dari Flye.
-    Fitur: Menangkap tag coverage 'dp:f:'
-    """
+    print(f"[SOLVER] [TRACE] Membaca grafik GFA: {gfa_path}")
     nodes = {}
-    edges = defaultdict(list) # Format: edges[u_name][u_ori] = [(v_name, v_ori)]
+    edges = defaultdict(list) 
 
-    print(f"[SOLVER] Membaca grafik GFA: {gfa_path}")
-    
-    with open(gfa_path, 'r') as f:
-        for line in f:
-            parts = line.strip().split('\t')
-            if not parts: continue
+    try:
+        with open(gfa_path, 'r') as f:
+            for line in f:
+                parts = line.strip().split('\t')
+                if not parts: continue
 
-            # --- Parsing Node (Segment) ---
-            if parts[0] == 'S':
-                name = parts[1]
-                seq = parts[2]
-                length = len(seq)
-                cov = 0.0
-                
-                # Cari tag dp:f: (Depth Coverage)
-                for tag in parts[3:]:
-                    if tag.startswith('dp:f:'):
-                        cov = float(tag.split(':')[-1])
-                        break
-                
-                # Filter noise: Abaikan node sangat pendek (<500bp)
-                if length > 500:
-                    nodes[name] = Node(name, length, cov, seq)
+                # --- Parsing Node (Segment) ---
+                if parts[0] == 'S':
+                    name = parts[1]
+                    seq = parts[2]
+                    length = len(seq)
+                    cov = 0.0
+                    for tag in parts[3:]:
+                        if tag.startswith('dp:f:'):
+                            cov = float(tag.split(':')[-1])
+                            break
+                    
+                    # Filter noise: Abaikan node sangat pendek (<500bp)
+                    if length > 500:
+                        nodes[name] = Node(name, length, cov, seq)
 
-            # --- Parsing Edge (Link) ---
-            elif parts[0] == 'L':
-                # Format: L <u_name> <u_ori> <v_name> <v_ori> <overlap>
-                u, u_ori, v, v_ori = parts[1], parts[2], parts[3], parts[4]
-                
-                # Hanya simpan edge jika kedua node valid (tidak terfilter)
-                if u in nodes and v in nodes:
-                    edges[u][u_ori].append((v, v_ori))
-                    rev_u = '-' if u_ori == '+' else '+'
-                    rev_v = '-' if v_ori == '+' else '+'
-                    edges[v][rev_v].append((u, rev_u))
+                # --- Parsing Edge (Link) ---
+                elif parts[0] == 'L':
+                    u, u_ori, v, v_ori = parts[1], parts[2], parts[3], parts[4]
+                    if u in nodes and v in nodes:
+                        edges[u][u_ori].append((v, v_ori))
+                        rev_u = '-' if u_ori == '+' else '+'
+                        rev_v = '-' if v_ori == '+' else '+'
+                        edges[v][rev_v].append((u, rev_u))
+    except Exception as e:
+        print(f"[ERROR] Gagal membaca GFA: {e}")
+        return None, None
 
+    print(f"   -> [STATS] Grafik dimuat. Total Node: {len(nodes)}")
     return nodes, edges
 
 # ==========================================
-# BAGIAN 3: LOGIKA MATEMATIKA (MULTIPLISITAS)
+# BAGIAN 3: LOGIKA MATEMATIKA (VERBOSE TABLE)
 # ==========================================
 
 def estimate_multiplicity(nodes):
-    """
-    Menentukan mana Single Copy (SC) dan mana Repeat (IR).
-    Fitur: Thresholding Coverage.
-    """
-    print("[SOLVER] Menganalisis struktur grafik (Multiplicity)...")
-
-    # 1. Hitung Rata-rata Coverage Tertimbang
+    print("\n[SOLVER] [LOGIC] Analisis Multiplisitas (Copy Number):")
+    
     total_len = 0
     total_cov_len = 0
     
@@ -94,32 +85,34 @@ def estimate_multiplicity(nodes):
     if total_len == 0: return None
     avg_cov = total_cov_len / total_len
     
-    print(f"   -> Rata-rata Coverage Graph: {avg_cov:.2f}x")
-
-    # 2. Assign Tiket (Copy Number)
+    print(f"   [STATS] Weighted Avg Coverage: {avg_cov:.2f}x")
+    
     # Ambang batas 1.6x rata-rata biasanya indikator kuat untuk IR
     ir_threshold = avg_cov * 1.6
     
+    # Cetak Tabel Keputusan
+    print("   [TABLE] Detil Node & Keputusan:")
+    print("   Name        | Len   | Cov    | Decision")
+    print("   " + "-"*45)
+    
     for name, node in nodes.items():
+        decision = "SINGLE (1x)"
         if node.coverage >= ir_threshold:
             node.copy_number = 2
-            print(f"   -> Node {name} [{node.length}bp, {node.coverage:.0f}x] identifikasi sebagai REPEAT (IR)")
+            decision = "REPEAT (2x) [IR]"
         else:
             node.copy_number = 1
-            # print(f"   -> Node {name} identifikasi sebagai SINGLE COPY")
+            
+        print(f"   {name:<11} | {node.length:<5} | {node.coverage:<6.1f} | {decision}")
 
     return avg_cov
 
 # ==========================================
-# BAGIAN 4: LOGIKA SOLVER (SIRKULAR & LINEAR)
+# BAGIAN 4: LOGIKA SOLVER (SIRKULAR & LINEAR WITH TRACE)
 # ==========================================
 
 def find_path(nodes, edges, mode="circular"):
-    """
-    Adaptasi logic 'disentangle': 
-    Mencari jalur graph. Bisa mode 'circular' (loop) atau 'linear' (longest path).
-    """
-    print(f"[SOLVER] Mencari jalur dengan mode: {mode.upper()}...")
+    print(f"\n[SOLVER] [LOGIC] Memulai Pencarian Jalur -> Mode: {mode.upper()}")
 
     # 1. Cari Titik Start (Harus LSC: Panjang & Single Copy)
     start_node = None
@@ -131,23 +124,33 @@ def find_path(nodes, edges, mode="circular"):
             start_node = name
 
     if not start_node:
-        print("[ERROR] Tidak menemukan kandidat LSC (Start Node).")
+        print("   [ERROR] Tidak menemukan kandidat LSC (Start Node). Grafik mungkin fragmentasi.")
         return None
     
-    # 2. Algoritma Backtracking (DFS)
-    # Reset visit count sebelum mulai
+    print(f"   [START] Titik awal: {start_node} (+)")
+
+    # Reset visit count
     for n in nodes.values(): n.visited_count = 0
     
-    best_path = []      # Untuk menyimpan hasil final
-    max_path_len = 0    # Untuk mode linear (tracking path terpanjang)
+    best_path = []
+    max_path_len = 0
 
-    def dfs(current_u, current_ori, path_stack, current_len_bp):
+    # 2. Algoritma Backtracking (DFS) dengan Visual Trace
+    def dfs(current_u, current_ori, path_stack, current_len_bp, depth):
         nonlocal best_path, max_path_len
+        
+        # Indentasi visual untuk log
+        indent = "      " + "| " * depth
+        
+        node_obj = nodes[current_u]
+        
+        # Uncomment baris ini jika ingin melihat setiap langkah kunjungan (sangat verbose)
+        # print(f"{indent}-> Visit: {current_u}({current_ori}) [{node_obj.visited_count}/{node_obj.copy_number}]")
 
         # A. Cek Kuota Kunjungan
-        node_obj = nodes[current_u]
         if node_obj.visited_count >= node_obj.copy_number:
-            return False 
+            # print(f"{indent}   X Kuota Habis.")
+            return False
         
         # B. Ambil Tiket & Catat Path
         node_obj.visited_count += 1
@@ -155,29 +158,35 @@ def find_path(nodes, edges, mode="circular"):
         path_stack.append((current_u, current_ori, seq_fragment))
         current_len_bp += len(seq_fragment)
         
-        # LOGIKA LINEAR: Selalu update jika menemukan jalan lebih jauh
+        # LOGIKA LINEAR: Update jika rekor terpecahkan
         if mode == "linear":
             if current_len_bp > max_path_len:
                 max_path_len = current_len_bp
-                best_path = list(path_stack) # Simpan copy path terbaik sejauh ini
+                best_path = list(path_stack)
+                # print(f"{indent}   ! New Record Linear: {current_len_bp} bp")
 
         # C. Cek Kemenangan (Sirkularitas)
         if mode == "circular" and len(path_stack) > 1:
             start_u, start_ori, _ = path_stack[0]
             if current_u == start_u and current_ori == start_ori:
-                # Sirkular ditemukan! Simpan dan return True untuk stop pencarian
+                print(f"{indent}   *** LOOP DETECTED! Sirkularitas Terkonfirmasi ***")
                 best_path = list(path_stack)
                 return True
 
         # D. Cari Tetangga (Next Step)
+        found_next = False
         if current_u in edges and current_ori in edges[current_u]:
             neighbors = edges[current_u][current_ori]
-            # Heuristic: Prioritaskan tetangga dengan coverage tertinggi (Main Path)
+            # Heuristic: Prioritaskan tetangga dengan coverage tertinggi
             neighbors.sort(key=lambda x: nodes[x[0]].coverage, reverse=True)
             
             for v_name, v_ori in neighbors:
-                if dfs(v_name, v_ori, path_stack, current_len_bp):
-                    if mode == "circular": return True # Bubble up success
+                if dfs(v_name, v_ori, path_stack, current_len_bp, depth + 1):
+                    if mode == "circular": return True 
+                    found_next = True
+        
+        if not found_next and mode == "circular":
+             pass # Dead end
         
         # E. Backtrack
         node_obj.visited_count -= 1
@@ -186,15 +195,17 @@ def find_path(nodes, edges, mode="circular"):
 
     # Jalankan DFS
     dummy_stack = []
-    found = dfs(start_node, '+', dummy_stack, 0)
+    found = dfs(start_node, '+', dummy_stack, 0, 0)
     
     if mode == "circular":
         if found:
-            best_path.pop() # Buang node terakhir (duplikat start) karena loop tertutup
+            print(f"   [RESULT] Sirkular: YES. Path Length: {len(best_path)} nodes.")
+            best_path.pop() # Buang node terakhir (duplikat start)
             return best_path
+        print("   [RESULT] Sirkular: NO (Gagal menemukan loop tertutup).")
         return None
     else:
-        # Mode Linear: Kembalikan path terpanjang yang ditemukan (best_path)
+        print(f"   [RESULT] Linear: YES. Max Length: {max_path_len} bp.")
         return best_path if len(best_path) > 0 else None
 
 # ==========================================
@@ -237,31 +248,36 @@ def solve_graph(gfa_input, fasta_output):
     estimate_multiplicity(nodes_dict)
     
     # 3. Solve Strategy 1: CIRCULAR (Prioritas Utama)
+    print("\n" + "-"*30)
+    print(" STRATEGI 1: MENCARI LINGKARAN")
+    print("-" * 30)
     path_result = find_path(nodes_dict, edges_dict, mode="circular")
     
     if path_result:
-        print("[SUCCESS] Jalur Sirkular Sempurna ditemukan!")
+        print("\n[SOLVER] [DECISION] ==> BERHASIL SIRKULAR")
         save_fasta(path_result, fasta_output, header_tag="Circular_Organelle")
         return True
     
     # 4. Solve Strategy 2: LINEAR / SCAFFOLD (Fallback)
-    # Adaptasi dari 'disentangle': Jika gagal sirkular, ekstrak contig terpanjang.
-    print("[WARNING] Gagal membentuk lingkaran sempurna. Beralih ke mode LINEAR (Scaffold)...")
+    print("\n" + "-"*30)
+    print(" STRATEGI 2: FALLBACK KE LINEAR")
+    print("-" * 30)
+    print("[WARNING] Gagal membentuk lingkaran sempurna. Mencoba mengekstrak scaffold terpanjang...")
+    
     path_result = find_path(nodes_dict, edges_dict, mode="linear")
     
     if path_result:
-        print("[SUCCESS] Jalur Linear Terpanjang ditemukan.")
+        print("\n[SOLVER] [DECISION] ==> BERHASIL LINEAR (SCAFFOLD)")
         # Beri nama output berbeda agar user tahu ini bukan sirkular
         base, ext = os.path.splitext(fasta_output)
         linear_output = f"{base}_linear_scaffold{ext}"
         save_fasta(path_result, linear_output, header_tag="Linear_Scaffold_Incomplete")
         
         # Copy ke output utama juga agar pipeline tidak crash, tapi user harus cek
-        import shutil
         shutil.copyfile(linear_output, fasta_output)
         return True
     
-    print("[FAILED] Gagal mengekstrak jalur apapun.")
+    print("\n[SOLVER] [DECISION] ==> GAGAL TOTAL")
     return False
 
 # ==========================================

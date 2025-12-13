@@ -49,7 +49,7 @@ class AssemblyGraph:
 # ==========================================
 
 def parse_flye_gfa(gfa_path):
-    print(f"[CLEANER] Membaca grafik GFA: {gfa_path}")
+    print(f"[CLEANER] [TRACE] Membaca grafik GFA: {gfa_path}")
     graph = AssemblyGraph()
     
     try:
@@ -83,7 +83,7 @@ def parse_flye_gfa(gfa_path):
         print(f"[ERROR] Gagal membaca file GFA: {e}")
         return None
                     
-    print(f"   -> Total Node Awal: {len(graph.nodes)}")
+    print(f"   -> [STATS] Total Node Awal: {len(graph.nodes)}")
     return graph
 
 # ==========================================
@@ -91,7 +91,7 @@ def parse_flye_gfa(gfa_path):
 # ==========================================
 
 def identify_anchors(graph, label_db, temp_dir):
-    print("[CLEANER] Menjalankan BLASTN untuk identifikasi Label...")
+    print("[CLEANER] [TRACE] Menjalankan BLASTN untuk identifikasi Label...")
     
     if not os.path.exists(temp_dir): os.makedirs(temp_dir)
     
@@ -121,8 +121,8 @@ def identify_anchors(graph, label_db, temp_dir):
         print("[ERROR] Gagal menjalankan BLASTN. Pastikan ncbi-blast+ terinstall.")
         return False
 
-    # 3. Parsing Hasil
-    # Kita butuh set node yang punya hit signifikan
+    # 3. Parsing Hasil (VERBOSE)
+    print("[CLEANER] [LOGIC] Menganalisis hasil BLAST (Anchoring):")
     anchors_found = 0
     with open(blast_out, 'r') as f:
         for line in f:
@@ -136,20 +136,22 @@ def identify_anchors(graph, label_db, temp_dir):
                 # Filter tambahan: Panjang alignment minimal 50bp agar tidak random noise
                 if aln_len > 50:
                     node = graph.nodes[node_name]
+                    # Log jika ini baru pertama kali teridentifikasi sebagai anchor
+                    if not node.is_anchor:
+                        print(f"   -> [ANCHOR] Node '{node_name}' (Len:{node.length}bp, Cov:{node.coverage:.1f}x) Hit-Len:{aln_len}bp")
+                        anchors_found += 1
+                    
                     node.is_anchor = True
                     node.keep = True
                     # Simpan hit terbaik
                     if aln_len > node.blast_hit_len:
                         node.blast_hit_len = aln_len
                         
-    # Hitung jumlah anchor unik
-    anchors_found = sum(1 for n in graph.nodes.values() if n.is_anchor)
-    print(f"   -> Ditemukan {anchors_found} Node Jangkar (Anchors).")
-    
+    print(f"   -> [STATS] Total Node Jangkar Ditemukan: {anchors_found}")
     return anchors_found > 0
 
 # ==========================================
-# BAGIAN 4: LOGIKA SLIMMING (INTI)
+# BAGIAN 4: LOGIKA SLIMMING (INTI - VERBOSE)
 # ==========================================
 
 def slim_graph_topology(graph):
@@ -157,22 +159,21 @@ def slim_graph_topology(graph):
     Logika: Hitung rata-rata coverage Anchor, lalu selamatkan tetangga 
     yang terhubung dan memiliki coverage yang 'mirip'.
     """
-    print("[CLEANER] Memulai proses Slimming & Neighbor Rescue...")
+    print("[CLEANER] [LOGIC] Memulai proses Slimming & Neighbor Rescue...")
     
     # 1. Hitung Target Coverage (Baseline)
     anchor_covs = [n.coverage for n in graph.nodes.values() if n.is_anchor]
     
     if not anchor_covs:
-        return graph # Tidak ada anchor, kembalikan apa adanya (atau error)
+        return graph 
         
     avg_target_cov = sum(anchor_covs) / len(anchor_covs)
-    print(f"   -> Target Coverage Organel: {avg_target_cov:.2f}x")
-    
-    # Ambang batas penyelamatan: 
-    # Node tetangga harus punya coverage minimal 10% dari target.
     min_rescue_cov = avg_target_cov * 0.1
     
-    # 2. Propagasi Penyelamatan (Neighbor Rescue Loop)
+    print(f"   [STATS] Rata-rata Coverage Organel: {avg_target_cov:.2f}x")
+    print(f"   [STATS] Ambang Batas Penyelamatan (10%): {min_rescue_cov:.2f}x")
+    
+    # 2. Propagasi Penyelamatan (Neighbor Rescue Loop - VERBOSE)
     iteration = 0
     changed = True
     
@@ -181,36 +182,50 @@ def slim_graph_topology(graph):
         iteration += 1
         rescued_in_this_round = 0
         
+        print(f"   [LOOP] Iterasi ke-{iteration} pemeriksaan tetangga...")
+        
         for name, node in graph.nodes.items():
             # Jika sudah disimpan, skip
             if node.keep: continue
             
-            # Cek Tetangga
-            # Apakah ada tetangga yang SUDAH berstatus 'keep=True'?
+            # Cek Tetangga: Siapa yang menyelamatkan?
             neighbors = graph.edges[name]
-            connected_to_safe_zone = any(graph.nodes[n].keep for n in neighbors)
+            savior_node = None
             
-            if connected_to_safe_zone:
+            for n_name in neighbors:
+                if graph.nodes[n_name].keep:
+                    savior_node = n_name
+                    break
+            
+            if savior_node:
                 # Cek Syarat Coverage
                 if node.coverage >= min_rescue_cov:
+                    print(f"      [RESCUE] Node '{name}' (Cov:{node.coverage:.1f}x) DISELAMATKAN oleh tetangga '{savior_node}'")
                     node.keep = True
                     changed = True
                     rescued_in_this_round += 1
+                else:
+                    # Optional Debug: Print node yang gagal diselamatkan karena coverage
+                    # print(f"      [DROP] Node '{name}' punya teman '{savior_node}' tapi coverage rendah ({node.coverage:.1f}x)")
+                    pass
         
-        if rescued_in_this_round > 0:
-            print(f"      [Iterasi {iteration}] Menyelamatkan {rescued_in_this_round} node tetangga.")
+        if rescued_in_this_round == 0:
+            print("      -> Tidak ada lagi node baru yang diselamatkan.")
 
     # 3. Hapus Sampah
     all_nodes = list(graph.nodes.keys())
     removed_count = 0
     
+    print("[CLEANER] [LOGIC] Eksekusi Pembersihan (Garbage Collection):")
     for name in all_nodes:
         if not graph.nodes[name].keep:
+            # Uncomment baris ini jika ingin melihat daftar sampah
+            # print(f"   -> [DELETE] Membuang Node Sampah: {name} (Cov:{graph.nodes[name].coverage:.1f}x)")
             graph.remove_node(name)
             removed_count += 1
             
-    print(f"   -> Pembersihan Selesai. Membuang {removed_count} node sampah.")
-    print(f"   -> Sisa Node Valid: {len(graph.nodes)}")
+    print(f"   -> [STATS] Pembersihan Selesai. Dibuang: {removed_count} node.")
+    print(f"   -> [STATS] Sisa Node Valid: {len(graph.nodes)}")
     
     return graph
 
@@ -282,7 +297,7 @@ def clean_graph(gfa_input, label_db, gfa_output, custom_temp_dir=None):
 # ==========================================
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Assembly Graph Cleaner (BLAST-based)")
+    parser = argparse.ArgumentParser(description="Assembly Graph Cleaner (BLAST-based) - Verbose Mode")
     
     # Arguments
     parser.add_argument("--gfa", required=True, help="Input GFA from Flye")
