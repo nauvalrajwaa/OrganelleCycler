@@ -3,7 +3,7 @@ import os
 
 # =============================================================================
 # SNAKEMAKE PIPELINE: ORGANELLE ASSEMBLY
-# Version: 2.3 (Clean & Simple)
+# Version: 2.4 (Added Blacklist Logic)
 # =============================================================================
 
 configfile: "config/config.yaml"
@@ -14,19 +14,23 @@ mode = config.get("run_mode", "PLASTOME").upper()
 
 print(f"🚀 RUNNING PIPELINE IN MODE: [ {mode} ]")
 
-# 2. VARIABEL DINAMIS (PATH)
+# 2. VARIABEL DINAMIS (PATH & BLACKLIST)
 # -----------------------------------------------------------------------------
-# Default Values (Agar tidak crash jika config kosong)
+# Default Values
 DEFAULTS = {
     "PLASTOME": { "seed": "embplant_pt.fasta", "label": "embplant_pt.fasta", "size": "150k" },
     "MITOME":   { "seed": "embplant_mt.fasta", "label": "embplant_mt.fasta", "size": "400k" }
 }
 
 if mode == "PLASTOME":
+    # Target = Plastome
     target_ref = config["paths"]["plastome"]["specific"]["fasta"]
     target_gbk = config["paths"]["plastome"]["specific"]["gbk"]
     
-    # Ambil metadata aman
+    # Blacklist = Mitome (Organel 'musuh' yang akan dibuang)
+    blacklist_ref = config["paths"]["mitome"]["specific"]["fasta"]
+    
+    # Metadata
     p_conf = config["paths"]["plastome"]
     active_seed  = p_conf.get("seed", DEFAULTS["PLASTOME"]["seed"])
     active_label = p_conf.get("label", DEFAULTS["PLASTOME"]["label"])
@@ -35,9 +39,14 @@ if mode == "PLASTOME":
     final_assembly = "results/assembly_plastome/final_circular.fasta"
 
 elif mode == "MITOME":
+    # Target = Mitome
     target_ref = config["paths"]["mitome"]["specific"]["fasta"]
     target_gbk = config["paths"]["mitome"]["specific"]["gbk"]
     
+    # Blacklist = Plastome
+    blacklist_ref = config["paths"]["plastome"]["specific"]["fasta"]
+    
+    # Metadata
     m_conf = config["paths"]["mitome"]
     active_seed  = m_conf.get("seed", DEFAULTS["MITOME"]["seed"])
     active_label = m_conf.get("label", DEFAULTS["MITOME"]["label"])
@@ -48,11 +57,18 @@ elif mode == "MITOME":
 else:
     raise ValueError(f"Mode {mode} tidak dikenal.")
 
-# Simpan ke config global agar rule lain bisa akses
-config["active_seed"]  = active_seed
-config["active_label"] = active_label
-config["target_ref"]   = target_ref
-config["target_gbk"]   = target_gbk
+# --- INJECT KE CONFIG GLOBAL ---
+# Agar rules/02_assembly.smk bisa membaca config["blacklist_ref"]
+config["active_seed"]   = active_seed
+config["active_label"]  = active_label
+config["target_ref"]    = target_ref
+config["target_gbk"]    = target_gbk
+config["blacklist_ref"] = blacklist_ref  # <--- INI SOLUSINYA
+
+# Debug print untuk memastikan jalur benar
+print(f"[INFO] Target Ref    : {target_ref}")
+print(f"[INFO] Blacklist Ref : {blacklist_ref}")
+print("-" * 50)
 
 # 3. SETUP TARGETS
 # -----------------------------------------------------------------------------
