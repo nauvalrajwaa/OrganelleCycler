@@ -6,53 +6,50 @@ import pandas as pd
 # Version: 2.0 (Smart Switching)
 # =============================================================================
 
-# --- 1. SETUP KONFIGURASI DINAMIS ---
-# Bagian ini membaca 'run_mode' dari config.yaml dan menentukan
-# path mana yang menjadi TARGET, BLACKLIST, SEED, dan LABEL.
+# 1. Tentukan Mode Operasi (PLASTOME / MITOME)
+# Default ke PLASTOME jika tidak ditentukan lewat command line (--config mode=...)
+mode = config.get("mode", "PLASTOME").upper()
 
-MODE = config["run_mode"].upper()
+print("="*50)
+print(f"   🚀 RUNNING PIPELINE IN MODE: [ {mode} ]")
+print("="*50)
 
-print(f"\n{'='*50}")
-print(f"   🚀 RUNNING PIPELINE IN MODE: [ {MODE} ]")
-print(f"{'='*50}\n")
+# 2. Setup Variabel Dinamis Berdasarkan Mode
+# Kita sesuaikan dengan struktur baru di config.yaml (nested paths)
 
-if MODE == "PLASTOME":
-    # --- MODE PLASTOME ---
-    # Target utama adalah Plastome. 
-    config["target_ref"]      = config["paths"]["plastome"]["fasta"]
-    config["target_gbk"]      = config["paths"]["plastome"]["gbk"]
-    config["blacklist_ref"]   = config["paths"]["mitome"]["fasta"]
-    config["target_est_size"] = config["paths"]["plastome"]["size"]
+if mode == "PLASTOME":
+    # Akses ke dalam config["paths"]["plastome"]
+    # Perhatikan struktur 'specific' untuk referensi
+    target_ref  = config["paths"]["plastome"]["specific"]["fasta"]
+    target_gbk  = config["paths"]["plastome"]["specific"]["gbk"]
     
-    # Seed untuk GetOrganelle (Initial Recruitment)
-    config["active_seed"]     = config["paths"]["plastome"]["seed"]
+    # Metadata (Seed, Label, Size) ada di level plastome (bukan specific)
+    active_seed = config["paths"]["plastome"]["seed"]
+    active_label= config["paths"]["plastome"]["label"]
+    target_size = config["paths"]["plastome"]["size"]
     
-    # Label untuk Graph Cleaner (Gene Database)
-    config["active_label"]    = config["paths"]["plastome"]["label"]
-    
-    # Label internal
-    config["target_assembly"] = "PLASTOME" 
+    # Path output final (opsional, untuk rule all)
+    final_assembly = "results/assembly_plastome/final_circular.fasta"
 
-elif MODE == "MITOME":
-    # --- MODE MITOME ---
-    # Target utama adalah Mitome.
-    config["target_ref"]      = config["paths"]["mitome"]["fasta"]
-    config["target_gbk"]      = config["paths"]["mitome"]["gbk"]
-    config["blacklist_ref"]   = config["paths"]["plastome"]["fasta"]
-    config["target_est_size"] = config["paths"]["mitome"]["size"]
+elif mode == "MITOME":
+    # Akses ke dalam config["paths"]["mitome"]
+    target_ref  = config["paths"]["mitome"]["specific"]["fasta"]
+    target_gbk  = config["paths"]["mitome"]["specific"]["gbk"]
     
-    # Seed untuk GetOrganelle (Initial Recruitment)
-    config["active_seed"]     = config["paths"]["mitome"]["seed"]
+    active_seed = config["paths"]["mitome"]["seed"]
+    active_label= config["paths"]["mitome"]["label"]
+    target_size = config["paths"]["mitome"]["size"]
     
-    # Label untuk Graph Cleaner (Gene Database)
-    config["active_label"]    = config["paths"]["mitome"]["label"]
-    
-    # Label internal
-    config["target_assembly"] = "MITOME"
+    final_assembly = "results/assembly_mitome/final_circular.fasta"
 
 else:
-    # Error Handling
-    raise ValueError(f"❌ FATAL ERROR: Mode '{MODE}' tidak dikenali! Harap set 'run_mode' di config.yaml menjadi 'PLASTOME' atau 'MITOME'.")
+    raise ValueError(f"Mode tidak dikenal: {mode}. Gunakan PLASTOME atau MITOME.")
+
+# Simpan variabel ke config global agar bisa diakses oleh rule lain jika perlu
+config["active_seed"] = active_seed
+config["active_label"] = active_label
+config["target_ref"] = target_ref
+config["target_gbk"] = target_gbk  # <-- Penting untuk rule extract_genes
 
 # --- DEBUG INFO ---
 print(f"[INFO] Target Reference    : {config['target_ref']}")
@@ -89,7 +86,8 @@ TARGETS.extend(expand("results/{sample}/09_viz/final_alignment_map.html",
 
 
 rule all:
-    input: TARGETS
+    input:
+        final_assembly
 
 # =============================================================================
 # 4. INCLUDE MODULES
